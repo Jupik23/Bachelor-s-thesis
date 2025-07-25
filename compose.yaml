@@ -1,0 +1,50 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/fastapi.Dockerfile
+    links:
+      - db
+    ports:
+       - "8081:8081"
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: degree
+      DATABASE_PASSWORD: degree
+      DATABASE_NAME: degree
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    restart: always
+  db:
+    build:
+      context: .
+      dockerfile: docker/postgres.Dockerfile
+    ports:
+       - "5430:5432"
+    restart: always
+    environment:
+      POSTGRES_USER: degree
+      POSTGRES_PASSWORD: degree
+      POSTGRES_DB: degree
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx.Dockerfile
+    links:
+      - web
+    ports:
+      - "80:80"
+    restart: always
+volumes:
+  db-data:
+  static:
