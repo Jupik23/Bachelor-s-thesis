@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from app.schemas.user import User
+from app.schemas.user import User, UserCreate
 from typing import Optional
 
 class UserAuthBase(BaseModel):
@@ -17,6 +17,10 @@ class UserAuth(UserAuthBase):
 
     class Config:
         from_attributes = True
+
+class RegisterRequest(BaseModel):
+    user_data: UserCreate
+    user_auth_data: UserAuthCreate
 
 class UserWithAuth(User):
     auth: Optional[UserAuth] = None

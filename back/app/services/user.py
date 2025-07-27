@@ -2,7 +2,8 @@ from sqlalchemy.orm import Session
 from app.schemas.user import UserCreate
 from app.schemas.user_auth import UserAuthCreate, UserWithAuth
 from app.crud.user import create_user as crud_create_user
-from app.crud.user_auth import create_new_user_auth as crud_create_new_user_auth
+from app.crud.user_auth import create_new_user_auth as crud_create_new_user_auth, get_user_auth_by_email
+from app.utils.jwt import generate_access__token
 
 import hashlib
 import secrets
@@ -61,3 +62,20 @@ class UserService:
     @staticmethod
     def delete_user():
         pass
+
+    @staticmethod
+    def authenticate_user(db: Session, login_data: UserAuthCreate):
+
+        user_auth = get_user_auth_by_email(db, login_data.email)
+        if not user_auth:
+            raise ValueError("Invalid password or email")
+        
+        if not UserService.verify_password(login_data.password, user_auth.password):
+            raise ValueError("Invalid password or email")
+        
+        token =  generate_access__token(user_auth)
+
+        return{
+            "access_token" : token,
+            "token_type": "bearer"
+        }
