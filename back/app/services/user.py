@@ -40,8 +40,15 @@ class UserService:
         return hashed.hex() + salt
 
     @staticmethod
-    def verify_password():
-        pass
+    def verify_password(password: str, hashed_password: str):
+        if len(hashed_password) < 32:
+            return False
+        
+        salt = hashed_password[-32:]
+        original_hash = hashed_password[:-32]
+        new_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000).hex()
+    
+        return original_hash == new_hash
     
     @staticmethod
     def update_last_login_status():
