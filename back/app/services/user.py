@@ -4,6 +4,7 @@ from app.schemas.user_auth import UserAuthCreate, UserWithAuth
 from app.crud.user import create_user as crud_create_user
 from app.crud.user_auth import create_new_user_auth as crud_create_new_user_auth, get_user_auth_by_email
 from app.utils.jwt import generate_access__token
+from app.schemas.token import Token
 
 import hashlib
 import secrets
@@ -75,7 +76,7 @@ class UserService:
         
         token =  generate_access__token(user_auth)
 
-        return{
-            "access_token" : token,
-            "token_type": "bearer"
-        }
+        return Token(
+            access_token=token,
+            token_type="bearer"
+        )

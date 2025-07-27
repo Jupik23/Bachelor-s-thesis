@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.schemas.token import Token
 
-router = APIRouter(prefix="/users")
+router = APIRouter(prefix="/users", tags=["users"])
 
 @router.post("/register", response_model=UserWithAuth, status_code=status.HTTP_201_CREATED)
 def create_user_endpoint(register_request: RegisterRequest, db:Session = Depends(get_database)):
