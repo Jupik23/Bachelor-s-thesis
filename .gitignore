@@ -1,1 +1,60 @@
-.venv/
+# macOS / system
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Node.js / Vue
+front/node_modules/
+front/dist/
+front/.env.local
+front/.env.*.local
+front/npm-debug.log*
+front/yarn-debug.log*
+front/yarn-error.log*
+front/pnpm-debug.log*
+
+# Python / FastAPI / SQLAlchemy
+back/**/__pycache__/
+back/**/*.py[cod]
+back/**/*.py[cod]
+back/.mypy_cache/
+back/.pytest_cache/
+back/.coverage
+back/htmlcov/
+back/*.sqlite3
+back/*.log
+back/*.egg-info/
+back/instance/
+back/.venv/
+back/.env
+back/.env.*
+
+# Docker volumes or generated folders
+db-data/
+static/
+*.db
+
+# Editor / IDE settings
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.bak
+*.tmp
+*.swp
+*.swo
+*.swn
+
+# Test / coverage outputs
+test_output/
+coverage.xml
+*.cover
+*.log
+
+# Allow sample env files
+!back/.env.example
+!front/.env.example
