@@ -9,5 +9,5 @@ def create_new_user_auth(db: Session, auth_data: UserAuthCreate, user_id : int):
     db.refresh(new_user_auth)
     return new_user_auth
 
-def get_user_auth_by_email(db: Session, email: str):
-    db.query(UserAuth).filter(UserAuth.email==email).first()
+def get_user_auth_by_email(db: Session, email_adress: str):
+    return db.query(UserAuth).filter(UserAuth.email==email_adress).first()

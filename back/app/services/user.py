@@ -72,9 +72,14 @@ class UserService:
             raise ValueError("Invalid password or email")
         
         if not UserService.verify_password(login_data.password, user_auth.password):
-            raise ValueError("Invalid password or email")
+            raise ValueError("Invalid password or email1")
         
-        token =  generate_access__token(user_auth)
+        token_payload = {
+        "sub": user_auth.email,
+        "user_id": user_auth.user_id
+        }
+        print(token_payload)
+        token = generate_access__token(token_payload)
 
         return Token(
             access_token=token,
