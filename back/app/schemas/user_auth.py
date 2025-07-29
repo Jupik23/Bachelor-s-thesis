@@ -18,6 +18,10 @@ class UserAuth(UserAuthBase):
     class Config:
         from_attributes = True
 
+class UserWithEmail(BaseModel):
+    user_data: UserCreate
+    user_auth_email: UserAuthBase
+
 class RegisterRequest(BaseModel):
     user_data: UserCreate
     user_auth_data: UserAuthCreate

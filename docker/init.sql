@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS user_auth (
     user_id INTEGER PRIMARY KEY REFERENCES users(id), 
     password VARCHAR NOT NULL,
-    email VARCHAR UNIQUE NOT NULL
+    email VARCHAR UNIQUE NOT NULL,
+    last_login TIMESTAMP WITH TIME ZONE
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_login ON users(login);

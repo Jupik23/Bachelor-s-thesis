@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from app.database.database import Base
 
@@ -8,5 +8,6 @@ class UserAuth(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True, index = True)
     password = Column(String, nullable = False)
     email = Column(String, index = True, nullable= False, unique=True)
+    last_login = Column(DateTime, default = None, )
 
     user = relationship("User", back_populates="auth")

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.schemas.user import UserCreate
 from app.schemas.user_auth import UserAuthCreate, UserWithAuth
-from app.crud.user import create_user as crud_create_user
+from app.crud.user import create_user as crud_create_user, get_user_info_by_id
 from app.crud.user_auth import create_new_user_auth as crud_create_new_user_auth, get_user_auth_by_email
 from app.utils.jwt import generate_access__token
 from app.schemas.token import Token
@@ -68,6 +68,7 @@ class UserService:
     def authenticate_user(db: Session, login_data: UserAuthCreate):
 
         user_auth = get_user_auth_by_email(db, login_data.email)
+        print(login_data.email)
         if not user_auth:
             raise ValueError("Invalid password or email")
         
@@ -75,7 +76,7 @@ class UserService:
             raise ValueError("Invalid password or email1")
         
         token_payload = {
-        "sub": user_auth.email,
+        "email": user_auth.email,
         "user_id": user_auth.user_id
         }
         print(token_payload)
@@ -85,3 +86,11 @@ class UserService:
             access_token=token,
             token_type="bearer"
         )
+    
+    @staticmethod
+    def get_user_info(db:Session, login_id:int):
+        user_info = get_user_info_by_id(db,login_id)
+        if not user_info:
+            raise ValueError("User not found")
+        return user_info
+        
