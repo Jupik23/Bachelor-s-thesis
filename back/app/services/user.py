@@ -3,7 +3,7 @@ from app.schemas.user import UserCreate
 from app.schemas.user_auth import UserAuthCreate, UserWithAuth
 from app.crud.user import create_user as crud_create_user, get_user_info_by_id
 from app.crud.user_auth import create_new_user_auth as crud_create_new_user_auth, get_user_auth_by_email
-from app.utils.jwt import generate_access__token
+from app.utils.jwt import generate_access_token
 from app.schemas.token import Token
 
 import hashlib
@@ -80,7 +80,7 @@ class UserService:
         "user_id": user_auth.user_id
         }
         print(token_payload)
-        token = generate_access__token(token_payload)
+        token = generate_access_token(token_payload)
 
         return Token(
             access_token=token,

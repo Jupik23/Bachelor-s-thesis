@@ -2,7 +2,10 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from dotenv import load_dotenv
 from fastapi import HTTPException, status, Depends
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordBearer
+from app.database.database import get_database
+from app.crud.user import get_user_info_by_id
 import os
 from pathlib import Path
 
@@ -14,9 +17,9 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = os.getenv('ALGORITHM')
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES') or 60)
 
-security = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token")
 
-def generate_access__token(data: dict, expires_delta: timedelta = None):
+def generate_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     expire = datetime.now() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
@@ -32,16 +35,16 @@ def decode_access_token(token: str):
             headers={"WWW_Authenticate": "Bearer"},
         )
     
-def get_current_user_data(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user_data(token: str = Depends(oauth2_scheme)):
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_access_token(token)
         user_id = payload.get("user_id")
         email = payload.get("email")
         user_data = {
             "user_id": user_id,
             "email": email
             }
-        if (user_id or email):
+        if user_id is None or email is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token payload",
@@ -55,3 +58,18 @@ def get_current_user_data(credentials: HTTPAuthorizationCredentials = Depends(se
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends()):
+    db = next(get_database)
+    try:
+        user_data = get_current_user_data(token)
+        user =  get_user_info_by_id(user_data["user_id"])
+        if user is None:
+            raise HTTPException(
+                status_code = status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW_authenticate": "Bearer"}
+            )
+        return user
+    finally:
+        db.close()

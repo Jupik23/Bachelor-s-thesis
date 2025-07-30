@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.schemas.token import Token
 from app.utils.jwt import get_current_user_data
+from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -27,6 +28,21 @@ def login_endpoint(login_data: UserAuthCreate, db: Session = Depends(get_databas
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e)
+        )
+    
+@router.post("/token",response_model=Token)
+def login_for_acces_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_database)):
+    try:
+        login_data = UserAuthCreate(
+            email = form_data.username, 
+            password = form_data.password
+        )
+        return UserService.authenticate_user(db, login_data)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
 @router.post('/change_password')

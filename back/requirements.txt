@@ -4,4 +4,4 @@ sqlalchemy>=2.0
 python-multipart
 psycopg2-binary
 aiofiles
-python-jose
+python-jose[cryptography]
