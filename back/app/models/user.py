@@ -11,3 +11,4 @@ class User(Base):
     login =  Column(String, unique= True, index= True, nullable = False)
     
     auth = relationship("UserAuth", back_populates="user", uselist=False)
+    oauth2_accounts = relationship("OAuth2Account", back_populates="user")
