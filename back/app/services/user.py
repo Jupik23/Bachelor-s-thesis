@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
 from app.schemas.user import UserCreate
-from app.schemas.user_auth import UserAuthCreate, UserWithAuth
-from app.crud.user import create_user as crud_create_user, get_user_info_by_id
-from app.crud.user_auth import create_new_user_auth as crud_create_new_user_auth, get_user_auth_by_email
+from app.schemas.user_auth import UserAuthCreate, UserWithAuth, PasswordUpdateRequest, PasswordUpdateResponse
+from app.crud.user import create_user as crud_create_user, get_user_info_by_id, update_user_password
+from app.crud.user_auth import (create_new_user_auth as crud_create_new_user_auth,
+                                get_user_auth_by_id, 
+                                get_user_auth_by_email)
 from app.utils.jwt import generate_access_token
 from app.schemas.token import Token
 
@@ -52,14 +54,23 @@ class UserService:
     
         return original_hash == new_hash
     
-    @staticmethod
-    def update_last_login_status():
-        pass
+    # @staticmethod
+    # def update_last_login_status():
+    #     pass
 
     @staticmethod
-    def change_password():
-        pass
+    def change_password(db:Session, change_password_data: PasswordUpdateRequest, user_id:int):
+        user_auth = get_user_auth_by_id(db, user_id=user_id)
 
+        if not user_auth:
+            raise ValueError("User not found")
+        
+        if UserService.verify_password(change_password_data.current_password, user_auth.password):
+            raise ValueError("Current password is incorect")
+        
+        new_hashed_password = UserService.hash_password(change_password_data.new_passoword)
+        return  update_user_password(db, user_id, new_hashed_password)
+    
     @staticmethod
     def delete_user():
         pass

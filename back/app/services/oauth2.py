@@ -52,7 +52,7 @@ class OAuth2Service:
             return response.json()
         
     @staticmethod
-    async def get_user_info(provider: str, access_token: str) -> OAuth2UserInfo:
+    async def get_user_info(provider: str, access_token: str):
 
         config = get_provider_config(provider)
         
@@ -73,7 +73,7 @@ class OAuth2Service:
         if provider == "facebook":
             return OAuth2UserInfo(
                 provider=provider,
-                provider_id=user_data["id"],
+                provider_id=str(user_data["id"]),
                 email=user_data.get("email"),
                 name=user_data.get("name"),
                 first_name=user_data.get("first_name"),
@@ -86,7 +86,7 @@ class OAuth2Service:
     @staticmethod
     def process_oauth2_login(db: Session, user_info: OAuth2UserInfo, access_token: str = None, refresh_token: str = None):
         
-        existing_user = get_user_by_oauth2(db, user_info.provider, user_info.provider_id)
+        existing_user = get_user_by_oauth2(db, user_info.provider, str(user_info.provider_id))
         is_new_user = False
         
         if existing_user:
@@ -99,7 +99,8 @@ class OAuth2Service:
                 login=f"{user_info.provider}_{user_info.provider_id}" 
             )
             user = create_user(db, user_create)
-            
+            db.refresh(user)
+
             create_oauth2_account(
                 db=db,
                 user_id=user.id,

@@ -12,6 +12,18 @@ class UserAuthUpdate(BaseModel):
     password: Optional[str] = None
     email: Optional[EmailStr] = None
 
+class PasswordUpdateRequest(BaseModel):
+    current_password: str
+    new_passoword: str
+    confirm_password: str
+
+    def password_match(self):
+        return self.new_passoword == self.current_password
+
+class PasswordUpdateResponse(BaseModel):
+    message: str 
+    updated_at: Optional[str] = None
+
 class UserAuth(UserAuthBase):
     user_id: int
 

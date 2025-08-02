@@ -11,3 +11,6 @@ def create_new_user_auth(db: Session, auth_data: UserAuthCreate, user_id : int):
 
 def get_user_auth_by_email(db: Session, email_adress: str):
     return db.query(UserAuth).filter(UserAuth.email==email_adress).first()
+
+def get_user_auth_by_id(db: Session, user_id: str):
+    return db.query(UserAuth).filter(UserAuth.user_id==user_id).first()

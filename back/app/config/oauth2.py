@@ -13,7 +13,7 @@ OAUTH2_PROVIDERS={
         "token_url": "https://graph.facebook.com/v18.0/oauth/access_token",
         "user_info_url": "https://graph.facebook.com/me?fields=id,name,email,first_name,last_name",
         "scope": "email",
-        "redirect_uri": os.getenv("FACEBOOK_REDIRECT_URI", "http://127.0.0.1:8081/users/auth/facebook/callback")
+        "redirect_uri": os.getenv("FACEBOOK_REDIRECT_URI")
     }
 }
 

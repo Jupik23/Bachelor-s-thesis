@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from app.services.user import UserService
 from app.services.oauth2 import OAuth2Service
 from app.schemas.user import User
-from app.schemas.user_auth import UserAuthCreate, UserWithAuth, RegisterRequest
+from app.schemas.user_auth import (UserAuthCreate, UserWithAuth, RegisterRequest, 
+                                   PasswordUpdateRequest, PasswordUpdateResponse)
 from app.schemas.oauth2 import OAuth2CallbackRequest, OAuth2LoginResponse
 from sqlalchemy.orm import Session
 from app.database.database import get_database
@@ -50,10 +51,34 @@ def login_for_acces_token(form_data: OAuth2PasswordRequestForm = Depends(), db: 
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-@router.post('/change_password')
-def change_password_endpoint():
-    pass
+@router.put('/password', response_model=PasswordUpdateResponse)
+def change_password_endpoint(change_password_data: PasswordUpdateRequest,
+                             current_user: User = Depends(get_current_user_data),
+                            db: Session = Depends(get_database)):
     
+    if not change_password_data.password_match():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password and confirmation do not match"
+        )
+    
+    if change_password_data.current_password == change_password_data.new_passoword:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different"
+        )
+    try:
+        UserService.change_password(
+            db,
+            change_password_data,
+            user_id = current_user["id"]
+        )
+        return {"detail": "Password updated successfully"}
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.get('/me', response_model = User)
 def get_current_user_endpoint(current_user: dict = Depends(get_current_user_data), db: Session = Depends(get_database)):
@@ -71,9 +96,6 @@ def oauth2_login(provider: str):
     try:
         state = secrets.token_urlsafe(32)
         authorization_url = OAuth2Service.get_authorization_url(provider, state)
-        print(os.getenv("FACEBOOK_CLIENT_ID"))
-        print(os.getenv("FACEBOOK_CLIENT_SECRET"))
-        print(os.getenv("FACEBOOK_REDIRECT_URI"))
         return {"authorization_url": authorization_url, "state": state}
     except ValueError as e:
         raise HTTPException(
@@ -108,7 +130,7 @@ async def oauth2_callback(provider: str, code: str, state: str = None, db: Sessi
         )
 
 @router.post("/auth/{provider}/mobile")
-async def oauth2_mobile_login(provider: str,callback_request: OAuth2CallbackRequest,db: Session = Depends(get_database)):
+async def oauth2_mobile_login(provider: str,callback_request: OAuth2CallbackRequest = Body(...),db: Session = Depends(get_database)):
     try:
         token_data = await OAuth2Service.exchange_code_for_token(provider, callback_request.code)
         access_token = token_data.get("access_token")
