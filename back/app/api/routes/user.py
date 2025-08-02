@@ -11,8 +11,7 @@ from app.schemas.token import Token
 from app.utils.jwt import get_current_user_data
 from fastapi.security import OAuth2PasswordRequestForm
 import secrets
-import os 
-from dotenv import load_dotenv
+from datetime import datetime
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -62,7 +61,7 @@ def change_password_endpoint(change_password_data: PasswordUpdateRequest,
             detail="New password and confirmation do not match"
         )
     
-    if change_password_data.current_password == change_password_data.new_passoword:
+    if change_password_data.current_password == change_password_data.new_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password must be different"
@@ -71,9 +70,12 @@ def change_password_endpoint(change_password_data: PasswordUpdateRequest,
         UserService.change_password(
             db,
             change_password_data,
-            user_id = current_user["id"]
+            user_id = current_user["user_id"]
         )
-        return {"detail": "Password updated successfully"}
+        return PasswordUpdateResponse(
+            message="Password updated sucessfully",
+            updated_at=datetime.utcnow().isoformat()
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -84,7 +86,7 @@ def change_password_endpoint(change_password_data: PasswordUpdateRequest,
 def get_current_user_endpoint(current_user: dict = Depends(get_current_user_data), db: Session = Depends(get_database)):
     try:
         user_id = current_user["user_id"]
-        return UserService.get_info_by_id(db, user_id)
+        return UserService.get_user_info(db, user_id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

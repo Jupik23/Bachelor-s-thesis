@@ -14,7 +14,7 @@ def get_user_info_by_id(db: Session, account_id: int):
     return db.query(User).filter(User.id == account_id).first()
 
 def update_user_password(db: Session, account_id: int, new_password):
-    user = get_user_auth_by_id(db, account_id= account_id)
+    user = get_user_auth_by_id(db, account_id)
     if user:
         user.password = new_password
         db.commit()

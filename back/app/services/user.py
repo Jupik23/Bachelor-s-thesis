@@ -65,10 +65,10 @@ class UserService:
         if not user_auth:
             raise ValueError("User not found")
         
-        if UserService.verify_password(change_password_data.current_password, user_auth.password):
+        if not UserService.verify_password(change_password_data.current_password, user_auth.password):
             raise ValueError("Current password is incorect")
         
-        new_hashed_password = UserService.hash_password(change_password_data.new_passoword)
+        new_hashed_password = UserService.hash_password(change_password_data.new_password)
         return  update_user_password(db, user_id, new_hashed_password)
     
     @staticmethod

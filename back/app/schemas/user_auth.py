@@ -14,11 +14,11 @@ class UserAuthUpdate(BaseModel):
 
 class PasswordUpdateRequest(BaseModel):
     current_password: str
-    new_passoword: str
+    new_password: str
     confirm_password: str
 
     def password_match(self):
-        return self.new_passoword == self.current_password
+        return self.new_password == self.confirm_password
 
 class PasswordUpdateResponse(BaseModel):
     message: str 
