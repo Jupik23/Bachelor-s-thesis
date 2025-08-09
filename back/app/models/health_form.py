@@ -1,20 +1,20 @@
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-from database import Base
+from database.database import Base
 from datetime import datetime
 
-class HealtForm(Base):
-    __tablename__ = 'healt_forms'
+class HealthForm(Base):
+    __tablename__ = 'health_forms'
 
-    id = Column(Integer, nulable = False, primarykey = True)
-    user_id = Column(Integer, ForeignKey("users.user_id"), nullable = False)
+    id = Column(Integer, nullable = False, primary_key = True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable = False)
     created_at = Column(DateTime, default = datetime.utcnow)
     height = Column(Integer)
     weight = Column(Integer)  
     number_of_meals_per_day = Column(Integer)
-    diet_preferences = Column(String)
-    allergies = Column(String)
-    intolerances = Column(String)
-    medicament_usage = Column(String)
+    diet_preferences = Column(JSON, nullable=True)
+    allergies = Column(JSON, nullable=True)
+    intolerances = Column(JSON, nullable=True)
+    medicament_usage = Column(JSON, nullable=True)
 
-    user = relationship("User", back_populates="health_form")
+    user = relationship("User", back_populates="health_forms")

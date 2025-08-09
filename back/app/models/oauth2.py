@@ -6,7 +6,7 @@ from app.database.database import Base
 class OAuth2Account(Base):
     __tablename__ = 'oauth2_accounts'
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     provider = Column(String, nullable=False)  
     provider_id = Column(String, nullable=False)  
