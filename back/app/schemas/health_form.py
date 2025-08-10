@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
-class HealthFormBase(BaseModel):
+class HealthFormCreate(BaseModel):
     height = Optional[int]
     weight = Optional[int]
     number_of_meals_per_day = Optional[int]
@@ -10,13 +10,10 @@ class HealthFormBase(BaseModel):
     allergies = Optional[str]
     medicament_usage = Optional[str]
 
-class HealtFormCreate(HealthFormBase):
+class HeathFormEdit(HealthFormCreate):
     pass
 
-class HeathFormEdit(HealthFormBase):
-    pass
-
-class HealthFormResponse(HealthFormBase):
+class HealthFormResponse(HealthFormCreate):
     id: int
     user_id: int
     created_at: datetime
