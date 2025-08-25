@@ -13,8 +13,8 @@ def create_oauth2_account(db: Session, user_id: int, provider: str, provider_id:
     )
     db.add(new_auth2_accout)
     db.commit()
-    db.refresh(new_auth2_accout)
-    db.close()
+    db.refresh(new_auth2_accout)   
+    return new_auth2_accout
 
 def get_oauth2_account_by_id(db: Session, provider: str, provider_id: str):
     return db.query(OAuth2Account).filter(OAuth2Account.provider== provider, OAuth2Account.provider_id == provider_id).first()

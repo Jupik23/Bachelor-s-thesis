@@ -13,4 +13,9 @@ class User(Base):
     auth = relationship("UserAuth", back_populates="user", uselist=False)
     oauth2_accounts = relationship("OAuth2Account", back_populates="user")
     health_forms = relationship("HealthForm", back_populates="user",cascade="all, delete-orphan")
-    plans = relationship("Plan", back_populates="user", cascade="all, delete-orphan")
+    plans = relationship(
+        "Plan",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="[Plan.user_id]"
+    )

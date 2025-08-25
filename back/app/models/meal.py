@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Time, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy import Enum as SAEnum
 from .common import MealType
-from database.database import Base
+from app.database.database import Base
 
 class Meal(Base):
     __tablename__ = "meals"

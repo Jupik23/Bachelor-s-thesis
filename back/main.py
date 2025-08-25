@@ -1,6 +1,8 @@
+import app.models
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes.user import router
+from app.api.routes.user import router as user_router
+from app.api.routes.meal_sugest import router as meal_router
 import uvicorn
 import sys
 import os
@@ -17,7 +19,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router)
+app.include_router(user_router)
+app.include_router(meal_router)
 
 #+local
 if __name__=="__main__":

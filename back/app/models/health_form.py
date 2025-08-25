@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-from database.database import Base
+from app.database.database import Base
 from datetime import datetime
 
 class HealthForm(Base):
