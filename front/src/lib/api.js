@@ -1,0 +1,35 @@
+import axios from 'axios';
+
+const api = axios.create({
+    baseURL: 'http://localhost:8081',
+    timeout: 15000,
+    withCredentials: false,
+})
+
+let _token = null;
+
+export function setAuthToken(token) {
+    _token = token;
+}
+export function clearAuthToken(token){
+    _token = null;
+}
+
+api.interceptors.request.use((config) => {
+    if (_token) config.headers.Authorization = "Bearer ${_token}";
+    return config;
+},
+    (err)=> Promise.reject(err)
+);
+
+api.interceptors.response.use(
+    (res) => res,
+    (err) => {
+        if (err?.response?.status == 401){
+            // to do: logout
+        }
+        return Promise.reject(err);
+    }
+);
+
+export default api;

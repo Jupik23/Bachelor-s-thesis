@@ -79,7 +79,6 @@ class UserService:
     def authenticate_user(db: Session, login_data: UserAuthCreate):
 
         user_auth = get_user_auth_by_email(db, login_data.email)
-        print(login_data.email)
         if not user_auth:
             raise ValueError("Invalid password or email")
         

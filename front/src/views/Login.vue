@@ -3,15 +3,18 @@
     <section class="section">
       <div class="container">
         <div class="card auth-card">
-          <form class="stack-4" @submit.prevent="onLogin">
+          <form class="stack-4" @submit.prevent="onLoginViaJson">
             <h1>Sign in</h1>
-            <input v-model="login.username" type="text" placeholder="Username or email" required>
+            <input v-model="login.email" type="text" placeholder="Email" required>
             <input v-model="login.password" type="password" placeholder="Password" required>
-            <button class="button" type="submit">Login</button>
-            <button class="facebook-button" type="button">
+            <button class="button" type="submit" :disabled="loading">
+              {{  loading ? 'Logging in..':"Login" }}
+            </button>
+            <button class="facebook-button" type="button" :disabled="loading">
               <span class="icon"></span>
               <span class="buttonText"aria-label="Continue with Facebook">Facebook</span>
             </button>
+            <p v-if="err" class="ta-center" style="color:var(--danger, #d33)">{{ error }}</p>
             <p class="ta-center">No account?
               <RouterLink to="/register">Create one</RouterLink>
             </p>
@@ -24,11 +27,36 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import BaseLayout from './Base.vue'
-const login = ref({ username:'', password:'' })
-function onLogin(){ console.log('login', login.value) }
-</script>
+import api, { setAuthToken } from '../lib/api.js'
 
+const router = useRouter()
+const login = ref({email: '', password: ''})
+const loading = ref(false)
+const err = ref(null)
+
+async function onLoginViaJson() {
+  loading.value = true
+  err.value = null
+  try{
+    const {data} = await api.post("/users/login" , {
+      email: login.value.email,
+      password: login.value.password
+    }
+  )
+    const token = data?.access_token
+    if(!token) throw new Error("No access token returned")
+    setAuthToken(token)
+    localStorage.setItem('token', token)
+    router.push('/')
+  }catch(e){
+    err.value = e?.response?.data?.detail || e?.message || 'Registration failed. Please try again.'
+  }finally{
+    loading.value = false;
+  }
+}
+</script>
 <style>
 .facebook-button{
   margin-left: 1%;
