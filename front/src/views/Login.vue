@@ -10,7 +10,7 @@
             <button class="button" type="submit" :disabled="loading">
               {{  loading ? 'Logging in..':"Login" }}
             </button>
-            <button class="facebook-button" type="button" :disabled="loading">
+            <button class="facebook-button" type="button" :disabled="loading" @click="loginViaFacebook">
               <span class="icon"></span>
               <span class="buttonText"aria-label="Continue with Facebook">Facebook</span>
             </button>
@@ -51,10 +51,43 @@ async function onLoginViaJson() {
     localStorage.setItem('token', token)
     router.push('/')
   }catch(e){
-    err.value = e?.response?.data?.detail || e?.message || 'Registration failed. Please try again.'
+    err.value = e?.response?.data?.detail || e?.message || 'Login failed. Please try again.'
   }finally{
     loading.value = false;
   }
+}
+
+async function loginViaFacebook() {
+  loading.value = true
+  err.value = null
+  try{
+    const {data} = await api.get('/users/auth/facebook')
+    if(!data?.authorization_url){
+      throw new Error("No authorization received")
+    }
+    if(data.state){
+      sessionStorage.setItem('oauth_state', data.state)
+    }
+    window.location.href = data.authorization_url
+  }catch(e){
+    err.value = e?.response?.data?.detail || e?.message || 'Login via Facebook failed. Please try again.'
+  }finally{
+    loading.value = false;
+  }
+
+async function handleOAuthCallback() {
+  const urlParams = new URLSearchParams(window.location.href)
+  const code = urlParams.get('code')
+  const state = urlParams.get('state')
+  const storedState = sessionStorage.getItem('oauth_state')
+  loading.value = true
+  err.value = null
+
+  if (state !== storedState){
+    throw new Error("Invalid state")
+  }
+  const {data} = await api.post("users/auth/facebook/callback")
+}
 }
 </script>
 <style>
