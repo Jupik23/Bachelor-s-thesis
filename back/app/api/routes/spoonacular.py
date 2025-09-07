@@ -5,10 +5,11 @@ from app.services.spoonacular import Spoonacular
 
 router = APIRouter()
 
-@router.get("/mealplan")
+@router.post("/mealplan")
 async def get_meal_plan(health_form: HealthFormCreate, days: int=1):
-    meal_plans = await Spoonacular.generate_plan(
-        healt_form=health_form,
+    client = Spoonacular()
+    meal_plans = await client.generate_meal_plan(
+        health_form=health_form,
         days = 7,
     )
     return {"meal_plans": meal_plans}

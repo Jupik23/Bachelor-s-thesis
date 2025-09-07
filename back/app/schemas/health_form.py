@@ -4,16 +4,14 @@ from typing import Optional, List
 
 class DietPreferences(BaseModel):
     diets: List[str]
-    target_calories = int
-    
-
+ 
 class HealthFormCreate(BaseModel):
-    height = Optional[int]
-    weight = Optional[int]
-    number_of_meals_per_day = Optional[int]
-    diet_preferences = Optional[str]
-    intolerances = Optional[str]
-    medicament_usage = Optional[str]
+    height: Optional[int] = None
+    weight: Optional[int] = None
+    number_of_meals_per_day: Optional[int] = None
+    diet_preferences: Optional[str] = None
+    intolerances: Optional[str] = None
+    medicament_usage: Optional[str] = None
 
 class HealthFormResponse(HealthFormCreate):
     id: int

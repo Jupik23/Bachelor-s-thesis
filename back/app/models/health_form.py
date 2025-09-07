@@ -13,7 +13,6 @@ class HealthForm(Base):
     weight = Column(Integer)  
     number_of_meals_per_day = Column(Integer)
     diet_preferences = Column(JSON, nullable=True)
-    allergies = Column(JSON, nullable=True)
     intolerances = Column(JSON, nullable=True)
     medicament_usage = Column(JSON, nullable=True)
 

@@ -1,7 +1,7 @@
 import os, httpx, asyncio, logging
-from typing import List, Optional, Dict
+from typing import Dict, Any
 from app.schemas.spoonacular import Recipe
-from app.schemas.health_form import DietPreferences, HealthFormCreate, DietPreferences
+from app.schemas.health_form import HealthFormCreate, DietPreferences
 
 class Spoonacular():
     def __init__(self):
@@ -11,11 +11,11 @@ class Spoonacular():
             "Content-Type": "application/json"
         }
 
-    async def _make_request(self, endpoint: str, params: Dict[str] = None):
-        if params in None:
+    async def _make_request(self, endpoint: str, params: Dict[str, Any] = None):
+        if params is None:
             params = {}
 
-        params["api_key"] = self.api_key
+        params["apiKey"] = self.api_key
 
         async with httpx.AsyncClient() as client:
             try:
@@ -28,9 +28,10 @@ class Spoonacular():
                 return response.json()
             except httpx.HTTPStatusError as e:
                 logging.error(f"HTTP error: {e.response.status_code} - {e.response.text}")
-                raise
+                raise 
             except Exception as e:
-                raise logging.error(f"Request error: {str(e)}")
+                logging.error(f"Request error: {str(e)}")
+                raise 
 
     def _format_diet_params(self, health_form: HealthFormCreate):
         params = {}
@@ -46,29 +47,30 @@ class Spoonacular():
             if valid_diet:
                 params["diet"] = ",".join(valid_diet)
 
-        if health_form.intolerances:
-            intolerances = [
-                "dairy", "egg", "gluten", "grain", "peanut", "seafood", 
-                "sesame", "shellfish", "soy", "sulfite", "tree nut", "wheat"
-            ]
-            user_intolerances_input = [i.strip().lower() for i in health_form.allergies.split(",")]
-            valid_intolerances = [i for i in user_intolerances_input if i in intolerances]
+        # if health_form.intolerances:
+        #     intolerances = [
+        #         "dairy", "egg", "gluten", "grain", "peanut", "seafood", 
+        #         "sesame", "shellfish", "soy", "sulfite", "tree nut", "wheat"
+        #     ]
+        #     user_intolerances_input = [i.strip().lower() for i in health_form.intolerances.split(",")]
+        #     valid_intolerances = [i for i in user_intolerances_input if i in intolerances]
 
-            if valid_intolerances:
-                params["intolerances"] = ",".join(valid_intolerances)
-        
+        #     if valid_intolerances:
+        #         params["intolerances"] = ",".join(valid_intolerances)
+        print(params)
         return params
 
 
-    async def generate_plan(self, healt_form: HealthFormCreate, days: int= 1):
-        params = self._format_diet_params(healt_form)
+    async def generate_meal_plan(self, health_form: HealthFormCreate, days: int= 1):
+        params = self._format_diet_params(health_form)
         params.update({
-            "timeFrame": "day" if days == 1 else "week",
-            "targetCalories" : 2000
+            "timeFrame": "day" if days == 1 else "week"
         })
+        print(self.api_key)
+        print(params)
         #trzeba jakiegos handlera zaimplemntaować + inicjalizacja tutaj obiektów Meal :))) 
         data = await self._make_request("mealplanner/generate", params)
-        return data.json()
+        return data
         
 
         

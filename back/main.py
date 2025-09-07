@@ -2,7 +2,7 @@ import app.models
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.user import router as user_router
-from app.api.routes.meal_sugest import router as meal_router
+from app.api.routes.spoonacular import router as spoon_router
 import uvicorn
 import sys
 import os
@@ -20,7 +20,7 @@ app.add_middleware(
 )
 
 app.include_router(user_router)
-app.include_router(meal_router)
+app.include_router(spoon_router)
 
 #+local
 if __name__=="__main__":
