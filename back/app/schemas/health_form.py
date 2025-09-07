@@ -12,7 +12,7 @@ class HealthFormCreate(BaseModel):
     weight = Optional[int]
     number_of_meals_per_day = Optional[int]
     diet_preferences = Optional[str]
-    allergies = Optional[str]
+    intolerances = Optional[str]
     medicament_usage = Optional[str]
 
 class HealthFormResponse(HealthFormCreate):
