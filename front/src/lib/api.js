@@ -32,4 +32,8 @@ api.interceptors.response.use(
     }
 );
 
+export const healtFormApi = {
+    create: (data) => api.post('/health_form/create/', data)
+}
+
 export default api;

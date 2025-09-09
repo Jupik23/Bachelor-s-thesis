@@ -37,44 +37,69 @@ import BaseLayout from './Base.vue'
 import { ref } from 'vue';
 import Multiselect from 'vue-multiselect'
 import "vue-multiselect/dist/vue-multiselect.min.css";
-const weight = ref('');
-const height = ref('');
-const numberOfMeals = ref('');
-const selectedPreferences = ref([]);
-const selectedIntolerances = ref([]);
-const medicaments = ref('');
-const intolerances = ref([
-  { name: 'Dairy' },
-  { name: 'Egg' },
-  { name: 'Gluten' },
-  { name: 'Grain' },
-  { name: 'Peanut' },
-  { name: 'Seafood' },
-  { name: 'Sesame' },
-  { name: 'Shellfish' },
-  { name: 'Soy' },
-  { name: 'Sulfite' },
-  { name: 'Tree Nut' },
-  { name: 'Wheat' }
-]);
-const preferences = ref([
-  { name: 'Gluten free' },
-  { name: 'Ketogenic' },
-  { name: 'Vegetarian' },
-  { name: 'Lacto-vegetarian' },
-  { name: 'Ovo-vegetarian' },
-  { name: 'Vegan' },
-  { name: 'Pescetarian' },
-  { name: 'Paleo' },
-  { name: 'Primal' },
-]);
+import api from "../lib/api.js"
 export default {
-  data (){
-    continue
+  name: 'HealthForm',
+  components:{
+    BaseLayout,
+    Multiselect,
+  },
+  data(){
+    return {
+      formData:{
+        weight: null,
+        height: null,
+        numberOfMeals: null,
+        selectedIntolerances: [],
+        selectedPreferences: [],
+        medicaments: '' //to do :)
+      },
+      preferences: [
+        { name: 'Vegetarian' },
+        { name: 'Vegan' },
+        { name: 'Keto' },
+        { name: 'Low Carb' },
+        { name: 'Mediterranean' },
+        { name: 'Paleo' }
+      ],
+      intolerances:[
+        { name: 'Lactose' },
+        { name: 'Gluten' },
+        { name: 'Nuts' },
+        { name: 'Shellfish' },
+        { name: 'Eggs' },
+        { name: 'Soy' }
+      ],
+      isLoading: False,
+      successMessage: "",
+      failureMessage: ""
     }
   },
-  methods{
-    
+  methods:{
+    async handleSubmit(){
+      if (!this.validateForm()){
+        retrun
+      }
+      this.isLoading = true
+      try{
+        const healthDataFromForm={
+          height: this.height,
+          weight: this.weight,
+          numberOfMeals: this.numberOfMeals,
+          preferences: this.preferences.map(pref=>pref.name),
+          intolerances: this.intolerances.map(pref=>pref.name),
+          medicaments: this.medicaments,
+        }
+        const reponse = await api.post("/health_form", healthDataFromForm)
+      }finally{
+        this.isLoading = false
+      }
+    },
+    validateForm(){
+      if (this.weight || this.weight <= 0){
+        //error handling
+      }
+    }
   }
 }
 </script>
