@@ -47,17 +47,19 @@ class Spoonacular():
             if valid_diet:
                 params["diet"] = ",".join(valid_diet)
 
-        # if health_form.intolerances:
-        #     intolerances = [
-        #         "dairy", "egg", "gluten", "grain", "peanut", "seafood", 
-        #         "sesame", "shellfish", "soy", "sulfite", "tree nut", "wheat"
-        #     ]
-        #     user_intolerances_input = [i.strip().lower() for i in health_form.intolerances.split(",")]
-        #     valid_intolerances = [i for i in user_intolerances_input if i in intolerances]
+        if health_form.intolerances:
+            intolerances = [
+                "dairy", "egg", "gluten", "grain", "peanut", "seafood", 
+                "sesame", "shellfish", "soy", "sulfite", "tree nut", "wheat"
+            ]
+            user_intolerances_input = [i.strip().lower() for i in health_form.intolerances.split(",")]
+            valid_intolerances = [i for i in user_intolerances_input if i in intolerances]
 
-        #     if valid_intolerances:
-        #         params["intolerances"] = ",".join(valid_intolerances)
-        print(params)
+            if valid_intolerances:
+                params["intolerances"] = ",".join(valid_intolerances)
+        if (health_form.height and health_form.weight):
+            target_calories = int((10 * health_form.weight) + int(6.25*health_form.height) - 100)
+            params["targetCalories"] = target_calories
         return params
 
 
