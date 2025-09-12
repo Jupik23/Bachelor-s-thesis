@@ -1,8 +1,8 @@
 <template>
 <BaseLayout>
   <form class="form" @submit.prevent="handleSubmit">
-    <input v-model="weight" placeholder="weight" />
-    <input v-model="height" placeholder="height" />
+    <input v-model="weight" placeholder="weight" type="number" min="1" step="0.1" />
+    <input v-model="height" placeholder="height"  type="number" min="1" step="0.1"/>
     <input v-model="numberOfMeals" placeholder="number of meals" type="number" min="1"  max="6"/>
     
     <multiselect
@@ -21,11 +21,14 @@
       label="name"
       track-by="name"
       placeholder="Select intolerances"
-      text-c
     />
 
     <input v-model="medicaments" placeholder="Medicaments taken" />
-    <button class="submit" @click="handleSubmit">Submit</button>
+     <button class="submit" type="submit" :disabled="isLoading">
+      {{ isLoading ? 'Submitting...' : 'Submit' }}
+    </button>
+    <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
+    <div v-if="failureMessage" class="error-message">{{ failureMessage }}</div>
   </form>
   </BaseLayout>
 </template>
@@ -70,7 +73,7 @@ export default {
         { name: 'Eggs' },
         { name: 'Soy' }
       ],
-      isLoading: False,
+      isLoading: false,
       successMessage: "",
       failureMessage: ""
     }
@@ -78,27 +81,56 @@ export default {
   methods:{
     async handleSubmit(){
       if (!this.validateForm()){
-        retrun
+        return
       }
+      if (this.isLoading){
+        console.log("loading")
+        return
+      }
+      this.failureMessage = "";
+      this.successMessage = "";
       this.isLoading = true
       try{
         const healthDataFromForm={
           height: this.height,
           weight: this.weight,
-          numberOfMeals: this.numberOfMeals,
-          preferences: this.preferences.map(pref=>pref.name),
-          intolerances: this.intolerances.map(pref=>pref.name),
-          medicaments: this.medicaments,
+          number_of_meals_per_day: this.numberOfMeals,
+          diet_preferences: this.selectedPreferences.map(pref=>pref.name),
+          intolerances: this.selectedIntolerances.map(pref=>pref.name),
+          medicament_usage: this.medicaments,
         }
-        const reponse = await api.post("/health_form", healthDataFromForm)
+        const response = await api.post("/api/v1/health-form", healthDataFromForm)
+        this.successMessage = "Form submitted!"
+        this.resetForm()
+      }catch (error) {
+        console.error("Submission error:", error);
+        this.failureMessage = "Failed to submit form."
       }finally{
         this.isLoading = false
       }
     },
     validateForm(){
-      if (this.weight || this.weight <= 0){
-        //error handling
+      if (!this.weight || this.weight <= 0){
+        this.failureMessage = "Enter valid weight"
+        return false;s
       }
+      if (!this.height || this.height <= 0) {
+        this.failureMessage = "Please enter a valid height.";
+        return false;
+      }
+      if (!this.numberOfMeals || this.numberOfMeals < 1 || this.numberOfMeals > 6) {
+        this.failureMessage = "Please enter a valid number of meals (1-6).";
+        return false;
+      }
+      return true;
+    },
+    resetForm(){
+      this.weight = null;
+      this.height = null;
+      this.numberOfMeals = null;
+      this.selectedIntolerances = [];
+      this.selectedPreferences = [];
+      this.medicaments = '';
     }
   }
 }
