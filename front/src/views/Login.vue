@@ -40,7 +40,7 @@ async function onLoginViaJson() {
   loading.value = true
   err.value = null
   try{
-    const {data} = await api.post("/users/login" , {
+    const {data} = await api.post("/api/v1/auth/session" , {
       email: login.value.email,
       password: login.value.password
     }
@@ -61,7 +61,7 @@ async function loginViaFacebook() {
   loading.value = true
   err.value = null
   try{
-    const {data} = await api.get('/users/auth/facebook')
+    const {data} = await api.get('/api/v1/fauth/facebook')
     if(!data?.authorization_url){
       throw new Error("No authorization received")
     }
@@ -86,7 +86,7 @@ async function handleOAuthCallback() {
   if (state !== storedState){
     throw new Error("Invalid state")
   }
-  const {data} = await api.post("users/auth/facebook/callback")
+  const {data} = await api.post("api/v1/auth/facebook/callback")
 }
 }
 </script>

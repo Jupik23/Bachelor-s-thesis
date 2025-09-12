@@ -61,7 +61,7 @@ async function onRegister() {
   loading.value = true
   err.value = null
   try{
-    await api.post("users/register", {
+    await api.post("/api/v1/users/", {
       user_data:{
         name: reg.value.name,
         surname: reg.value.surname,

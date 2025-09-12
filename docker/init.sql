@@ -59,3 +59,49 @@ CREATE INDEX IF NOT EXISTS idx_oauth2_accounts_user_id ON oauth2_accounts(user_i
 CREATE INDEX IF NOT EXISTS idx_health_forms_user_id ON health_forms(user_id);
 CREATE INDEX IF NOT EXISTS idx_plans_user_id ON plans(user_id);
 CREATE INDEX IF NOT EXISTS idx_meals_plan_id ON meals(plan_id);
+
+
+-- Użytkownicy
+INSERT INTO users (name, surname, login) VALUES
+('Jan', 'Kowalski', 'janek'),
+('Anna', 'Nowak', 'ania'),
+('Piotr', 'Wiśniewski', 'piotrw');
+
+-- Dane logowania
+INSERT INTO user_auth (user_id, password, email, last_login) VALUES
+(1, 'hashed_pass_jan', 'jan.kowalski@example.com', NULL),
+(2, 'hashed_pass_ania', 'anna.nowak@example.com', NULL),
+(3, 'hashed_pass_piotr', 'piotr.w@example.com', NULL);
+
+-- Konta OAuth2
+INSERT INTO oauth2_accounts (user_id, provider, provider_id, provider_email, access_token, refresh_token)
+VALUES
+(1, 'google', 'g123', 'jan.kowalski@gmail.com', 'access_tok_jan', 'refresh_tok_jan'),
+(2, 'github', 'gh456', 'anna.nowak@github.com', 'access_tok_ania', 'refresh_tok_ania');
+
+-- Formularze zdrowotne
+INSERT INTO health_forms (user_id, height, weight, number_of_meals_per_day, diet_preferences, intolerances, medicament_usage)
+VALUES
+(1, 180, 80, 3, '["vegetarian"]', '["gluten"]', '["ibuprofen"]'),
+(2, 165, 60, 4, '["low_carb"]', '[]', '[]'),
+(3, 175, 75, 5, '["balanced"]', '["lactose"]', '["paracetamol"]');
+
+-- Plany dietetyczne (maj)
+INSERT INTO plans (user_id, created_by, day_start) VALUES
+(1, 2, '2025-05-01'),
+(2, 1, '2025-05-01'),
+(3, 1, '2025-05-01');
+
+-- Posiłki w planach
+INSERT INTO meals (plan_id, meal_type, time, description, eaten, comment) VALUES
+(1, 'BREAKFAST', '08:00', 'Owsianka z owocami', FALSE, NULL),
+(1, 'LUNCH', '13:00', 'Kurczak z ryżem i warzywami', FALSE, NULL),
+(1, 'DINNER', '19:00', 'Sałatka grecka', FALSE, NULL),
+
+(2, 'BREAKFAST', '07:30', 'Jajecznica z pomidorami', FALSE, NULL),
+(2, 'LUNCH', '12:30', 'Makaron pełnoziarnisty z pesto', FALSE, NULL),
+(2, 'DINNER', '18:30', 'Zupa krem z dyni', FALSE, NULL),
+
+(3, 'BREAKFAST', '09:00', 'Smoothie bananowo-truskawkowe', FALSE, NULL),
+(3, 'LUNCH', '14:00', 'Filet z łososia + kasza jaglana', FALSE, NULL),
+(3, 'DINNER', '20:00', 'Kanapki pełnoziarniste z hummusem', FALSE, NULL);
