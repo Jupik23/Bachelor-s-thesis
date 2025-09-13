@@ -6,9 +6,10 @@ from app.services.healthform import HealthFormService
 
 router = APIRouter(prefix="/api/v1/health-form",tags=["health-form"])
 
-# @router.get("/")
-# def get_users_form(db: Session = Depends(get_database)):
-#     return HealthFormService(db)
+@router.get("/")
+def get_users_form(db: Session = Depends(get_database), user_id: int = 1):
+    form = HealthFormService(db)
+    return form.get_health_form(user_id = user_id)
 
 @router.post("/", response_model= HealthFormResponse)
 def create_health_form(input: HealthFormCreate, db:Session = Depends(get_database), user_id: int = 1):

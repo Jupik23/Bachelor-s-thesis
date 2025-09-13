@@ -16,7 +16,9 @@ export function clearAuthToken(token){
 }
 
 api.interceptors.request.use((config) => {
-    if (_token) config.headers.Authorization = "Bearer ${_token}";
+    if (_token) {
+        config.headers.Authorization = `Bearer ${_token}`;
+    }
     return config;
 },
     (err)=> Promise.reject(err)
@@ -26,14 +28,15 @@ api.interceptors.response.use(
     (res) => res,
     (err) => {
         if (err?.response?.status == 401){
-            // to do: logout
+            clearAuthToken()
+            window.location.href = "/login"          
         }
         return Promise.reject(err);
     }
 );
 
 export const healtFormApi = {
-    create: (data) => api.post('/health_form/create/', data)
+    create: (data) => api.post('api/v1/health_form/create/', data)
 }
 
 export default api;

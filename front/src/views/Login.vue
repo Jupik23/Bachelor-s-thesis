@@ -14,7 +14,7 @@
               <span class="icon"></span>
               <span class="buttonText"aria-label="Continue with Facebook">Facebook</span>
             </button>
-            <p v-if="err" class="ta-center" style="color:var(--danger, #d33)">{{ error }}</p>
+            <p v-if="err" class="ta-center" style="color:var(--danger, #d33)">{{ err }}</p>
             <p class="ta-center">No account?
               <RouterLink to="/register">Create one</RouterLink>
             </p>
@@ -30,6 +30,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseLayout from './Base.vue'
 import api, { setAuthToken } from '../lib/api.js'
+import { userAuthStore } from '@/lib/auth'
 
 const router = useRouter()
 const login = ref({email: '', password: ''})
@@ -40,20 +41,20 @@ async function onLoginViaJson() {
   loading.value = true
   err.value = null
   try{
-    const {data} = await api.post("/api/v1/auth/session" , {
+    const authStore = userAuthStore()
+    const res = await authStore.Login({
       email: login.value.email,
       password: login.value.password
+    })
+    if(res.success){
+      router.push("/")
+    }else{
+      err.value = res.Error
     }
-  )
-    const token = data?.access_token
-    if(!token) throw new Error("No access token returned")
-    setAuthToken(token)
-    localStorage.setItem('token', token)
-    router.push('/')
   }catch(e){
-    err.value = e?.response?.data?.detail || e?.message || 'Login failed. Please try again.'
+    err.value = "Login failed"
   }finally{
-    loading.value = false;
+    loading.value = false
   }
 }
 
@@ -74,9 +75,10 @@ async function loginViaFacebook() {
   }finally{
     loading.value = false;
   }
+}
 
 async function handleOAuthCallback() {
-  const urlParams = new URLSearchParams(window.location.href)
+  const urlParams = new URLSearchParams(window.location.search)
   const code = urlParams.get('code')
   const state = urlParams.get('state')
   const storedState = sessionStorage.getItem('oauth_state')
@@ -88,7 +90,7 @@ async function handleOAuthCallback() {
   }
   const {data} = await api.post("api/v1/auth/facebook/callback")
 }
-}
+
 </script>
 <style>
 .facebook-button{
