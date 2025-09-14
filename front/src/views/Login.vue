@@ -47,7 +47,6 @@ async function onLoginViaJson() {
       password: login.value.password
     })
     if(res.success){
-      router.push("/")
     }else{
       err.value = res.Error
     }
@@ -123,12 +122,12 @@ async function handleOAuthCallback() {
   height: 36px;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  background-color: #1877F2; /* fallback blue behind the logo */
+  background-color: #1877F2; 
   background-image: url("../assets/2023_Facebook_icon.svg.png");
-  background-size: 60% 60%;  /* keep the glyph nicely inset */
+  background-size: 60% 60%;  
   background-position: center;
   background-repeat: no-repeat;
-  flex: 0 0 36px;            /* prevent squeeze in flex layout */
+  flex: 0 0 36px;            
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
 }
 .facebook-button .buttonText{

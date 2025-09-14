@@ -11,9 +11,9 @@ import {createPinia} from 'pinia'
 import { userAuthStore } from './lib/auth';
 
 const app = createApp(App)
+app.use(router)
 const pinia = createPinia()
 app.use(pinia)
-app.use(router)
 app.mount('#app')
 const authStore = userAuthStore()
 authStore.initializeAuth()

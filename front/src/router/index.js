@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 import { userAuthStore } from "@/lib/auth";
 
 const routes = [
@@ -44,31 +44,29 @@ const routes = [
 ]
 
 const router = createRouter({
-    history: createWebHashHistory(),
+    history: createWebHistory(),
     routes,
 })
 
-router.beforeEach(async (to ,from , next) => {
-    const authStore = userAuthStore()
-
-    if (!authStore.isAuthenticated && !authStore.token){
-        await authStore.checkToken()
+router.beforeEach(async (to, from, next) => {
+    const authStore = userAuthStore();
+    if (!authStore.isAuthenticated && authStore.token) {
+        await authStore.checkToken();
     }
-    const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-    const forVisitors = to.matched.some(record => record.meta.forVisitors)
-    const isAuthenticated = authStore.isLoggedIn
-
-    if(requiresAuth && !isAuthenticated){
+    const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+    const isAuthenticated = authStore.isLoggedIn;
+    if (requiresAuth && !isAuthenticated) {
         next({
             name: 'login',
-            query: {redirect: to.fullPath}
-        })
-    }else if(forVisitors && isAuthenticated && (to.name === 'login' || to.name === 'register')){
-        next({
-            name: "about"
-        })
-    }else{
-        next()
+            query: { redirect: to.fullPath }
+        });
+    }
+    else if (to.name === 'login' && isAuthenticated) {
+        const redirectPath = to.query.redirect || { name: 'health_form' };
+        next(redirectPath);
+    }
+    else {
+        next();
     }
 })
 
