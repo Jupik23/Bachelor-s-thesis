@@ -47,4 +47,4 @@
 .navbar__link{ padding:8px 12px; border-radius:10px; }
 .navbar__link:hover{ background: color-mix(in oklab, var(--surface) 86%, #000 14%); text-decoration:none; }
 
-.auth-card{ max-width:420px; margin-inline:auto; }
+.auth-card{ max-width:25rem; margin-inline:auto; }

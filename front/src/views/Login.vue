@@ -2,7 +2,7 @@
   <BaseLayout>
     <section class="section">
       <div class="container">
-        <div class="card auth-card">
+        <Card class="auth-card">
           <form class="stack-4" @submit.prevent="onLoginViaJson">
             <h1>Sign in</h1>
             <input v-model="login.email" type="text" placeholder="Email" required>
@@ -19,7 +19,7 @@
               <RouterLink to="/register">Create one</RouterLink>
             </p>
           </form>
-        </div>
+        </Card>
       </div>
     </section>
   </BaseLayout>
@@ -31,7 +31,7 @@ import { useRouter } from 'vue-router'
 import BaseLayout from './Base.vue'
 import api, { setAuthToken } from '../lib/api.js'
 import { userAuthStore } from '@/lib/auth'
-
+import Card from "@/components/Card.vue"
 const router = useRouter()
 const login = ref({email: '', password: ''})
 const loading = ref(false)
@@ -47,6 +47,7 @@ async function onLoginViaJson() {
       password: login.value.password
     })
     if(res.success){
+      router.push("/Dashboard")
     }else{
       err.value = res.Error
     }
@@ -89,7 +90,6 @@ async function handleOAuthCallback() {
   }
   const {data} = await api.post("api/v1/auth/facebook/callback")
 }
-
 </script>
 <style>
 .facebook-button{
