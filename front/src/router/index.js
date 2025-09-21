@@ -40,6 +40,10 @@ const routes = [
             requiresAuth: true,
             forVisitors: false,
         }
+    },
+    { path: "/dashboard",
+        mame: 'dashboard',
+        component: () => import("@/views/Dashboard.vue"),
     }
 ]
 

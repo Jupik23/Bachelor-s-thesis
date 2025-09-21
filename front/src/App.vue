@@ -1,7 +1,7 @@
 <script setup>
-import Base from "./views/Base.vue";
+import Base from "./layouts/Base.vue";
 import Home from "./views/Home.vue";
-import Nav from "./components/partial/Nav.vue"
+import Nav from "./components/partial/Sidebar.vue"
 </script>
 
 <template>

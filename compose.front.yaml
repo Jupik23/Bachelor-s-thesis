@@ -1,0 +1,14 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/nginx.dev.Dockerfile
+    volumes:
+      - ./front:/app
+      - /app/node_modules
+    ports:
+      - "8085:5173"
+    environment:
+      VITE_BACKEND_URL: http://localhost:8081 
+    stdin_open: true
+    tty: true

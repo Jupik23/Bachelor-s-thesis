@@ -14,5 +14,5 @@
 </template>
 
 <script setup>
-import BaseLayout from './Base.vue'
+import BaseLayout from '../layouts/Base.vue'
 </script>

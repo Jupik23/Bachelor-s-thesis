@@ -28,7 +28,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import BaseLayout from './Base.vue'
+import BaseLayout from '../layouts/Base.vue'
 import api, { setAuthToken } from '../lib/api.js'
 import { userAuthStore } from '@/lib/auth'
 import Card from "@/components/Card.vue"
@@ -42,14 +42,14 @@ async function onLoginViaJson() {
   err.value = null
   try{
     const authStore = userAuthStore()
-    const res = await authStore.Login({
+    const res = await authStore.login({
       email: login.value.email,
       password: login.value.password
     })
     if(res.success){
-      router.push("/Dashboard")
+      router.push("/dashboard")
     }else{
-      err.value = res.Error
+      err.value = res.error
     }
   }catch(e){
     err.value = "Login failed"
@@ -62,7 +62,7 @@ async function loginViaFacebook() {
   loading.value = true
   err.value = null
   try{
-    const {data} = await api.get('/api/v1/fauth/facebook')
+    const {data} = await api.get('/api/v1/auth/facebook')
     if(!data?.authorization_url){
       throw new Error("No authorization received")
     }

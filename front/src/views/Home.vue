@@ -27,5 +27,5 @@
 
 <script setup>
 import { RouterLink } from 'vue-router'
-import BaseLayout from './Base.vue'
+import BaseLayout from '../layouts/Base.vue'
 </script>
