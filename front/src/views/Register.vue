@@ -31,7 +31,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import BaseLayout from '../layouts/Base.vue'
+import BaseLayout from './Base.vue'
 import api from "../lib/api.js"
 import { useRouter } from 'vue-router'
 

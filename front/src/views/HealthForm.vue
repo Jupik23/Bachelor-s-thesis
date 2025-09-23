@@ -33,7 +33,7 @@
   </BaseLayout>
 </template>
 <script setup>
-import BaseLayout from '../layouts/Base.vue'
+import BaseLayout from './Base.vue'
 </script>
 
 <script>

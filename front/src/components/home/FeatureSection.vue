@@ -1,0 +1,79 @@
+<template>
+    <section class="features-section">
+        <div class="container">
+            <h2 class="section-title">Why Choose Our Platform?</h2>
+            <p class="section-subtitle">
+                The only solution that combines comprehensive diet and medication management<br>
+                with intelligent interaction monitoring.
+            </p>
+            <div class="cards-container">
+                <Card
+                v-for="feature in features"
+                :key="feature.title"
+                :title="feature.title"
+                :description="feature.description">
+                </Card>
+            </div>
+      </div>
+    </section>
+</template> 
+
+<script setup>
+import Card from '@/components/Card.vue';
+import { ref } from 'vue';
+
+const features = ref([
+    {
+        title: 'Smart Medication Tracking',
+        description: 'Advanced medication management with interaction alerts and personalized reminders.'
+    },
+    {
+        title: 'Intelligent Diet Planning',
+        description: 'Personalized meal plans considering allergies, intolerances, and nutritional needs.'
+    },
+    {
+        title: 'Interaction Monitoring',
+        description: 'Real-time alerts for food-drug and drug-drug interactions to keep you safe.'
+    },
+    {
+        title: 'Calendar Integration',
+        description: 'Seamless sync with Google Calendar for medication schedules and meal planning..'
+    },
+    {
+        title: 'Caregiver Support',
+        description: 'Perfect for parents monitoring children or caregivers managing elderly health.'
+    },
+    {
+        title: 'HIPAA Compliant',
+        description: 'Enterprise-grade security ensuring your health data remains private and secure.'
+    },
+])
+</script>
+<style scoped>
+.features-section {
+  background-color: #f8f9fa;
+  padding: 5rem 2rem;
+  text-align: center;
+}
+.section-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+.section-subtitle {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  margin-bottom: 4rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+</style>

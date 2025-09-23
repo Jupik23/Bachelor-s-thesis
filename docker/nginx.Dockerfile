@@ -11,4 +11,4 @@ RUN npm run build
 FROM nginx:stable
 
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build-front /app/dist /usr/share/nginx/htmlcd
+COPY --from=build-front /app/dist /usr/share/nginx/html

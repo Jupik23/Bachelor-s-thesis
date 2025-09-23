@@ -11,7 +11,7 @@ export const userAuthStore = defineStore("auth", {
         isLoggedIn: (state) => state.isAuthenticated && state.token !== null,
     },
     actions: {
-        async login(credentials) {
+        async Login(credentials) {
             try{
                 const response = await api.post("api/v1/auth/session", credentials)
                 const {access_token} = response.data
@@ -22,7 +22,7 @@ export const userAuthStore = defineStore("auth", {
                 setAuthToken(access_token)
                 return {success:true} 
             }catch(error){
-                return {success: false, Error: error.response?.data?.message || "Login failed"}
+                return {success: false, error: error.response?.data?.message || "Login failed"}
             }   
     },
     async logout(){

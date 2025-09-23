@@ -25,14 +25,6 @@ const routes = [
             forVisitors: true,
         }
     },
-    { path: "/about", 
-        name: "about", 
-        component: () => import("../views/About.vue"),
-        meta: {
-            requiresAuth: false,
-            forVisitors: true,
-        }
-    },
     { path: "/health_form", 
         name: "health_form", 
         component: () => import("../views/HealthForm.vue"),
@@ -40,10 +32,6 @@ const routes = [
             requiresAuth: true,
             forVisitors: false,
         }
-    },
-    { path: "/dashboard",
-        mame: 'dashboard',
-        component: () => import("@/views/Dashboard.vue"),
     }
 ]
 

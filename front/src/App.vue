@@ -1,12 +1,11 @@
 <script setup>
-import Base from "./layouts/Base.vue";
-import Home from "./views/Home.vue";
-import Nav from "./components/partial/Sidebar.vue"
+import Navbar from './components/layout/Navbar.vue';
 </script>
 
 <template>
-  <router-view />
   <div class="app">
+    <Navbar/>
+    <router-view />
   </div>
 </template>
 
