@@ -7,8 +7,8 @@ import { RouterLink } from 'vue-router';
 <template>
     <nav class="navbar">   
         <div>
-            <RouterLink to="/" class="navbar-logo">
-                <img src=""></img>
+            <RouterLink to="/">
+                <img src="@\assets\images\small-logo.png" class="navbar-logo"></img>
             </RouterLink>
             <ul class="nav-menu">
                 <li><RouterLink to="/features" class="nav-link">Features</RouterLink></li>
@@ -39,8 +39,23 @@ import { RouterLink } from 'vue-router';
     position: sticky;
     top: 0;
 }
+.navbar > div{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 auto;
+    gap: 5rem;
+    max-width: 1200px;
+}
+.navbar-logo{
+    flex-shrink: 0;
+    max-height: 50px;
+    max-width: 50px;
+}
 .nav-menu {
+  flex: 1;
   display: flex;
+  justify-content: center;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -56,5 +71,9 @@ import { RouterLink } from 'vue-router';
 .nav-link:hover{
     color: #27ae60; 
     transform: scale(1.2);
+}
+.login-logout{
+    display: flex;
+    gap: 1rem;
 }
 </style>
