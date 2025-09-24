@@ -12,6 +12,7 @@
                 :key="feature.title"
                 :title="feature.title"
                 :description="feature.description">
+                <template #icon>{{ feature.icon }}</template>
                 </Card>
             </div>
       </div>
@@ -24,26 +25,32 @@ import { ref } from 'vue';
 
 const features = ref([
     {
+        icon: "",
         title: 'Smart Medication Tracking',
         description: 'Advanced medication management with interaction alerts and personalized reminders.'
     },
     {
+        icon: "",
         title: 'Intelligent Diet Planning',
         description: 'Personalized meal plans considering allergies, intolerances, and nutritional needs.'
     },
     {
+        icon: "",
         title: 'Interaction Monitoring',
         description: 'Real-time alerts for food-drug and drug-drug interactions to keep you safe.'
     },
     {
+        icon: "",
         title: 'Calendar Integration',
         description: 'Seamless sync with Google Calendar for medication schedules and meal planning..'
     },
     {
+        icon: "",
         title: 'Caregiver Support',
         description: 'Perfect for parents monitoring children or caregivers managing elderly health.'
     },
     {
+        icon: "",
         title: 'HIPAA Compliant',
         description: 'Enterprise-grade security ensuring your health data remains private and secure.'
     },
