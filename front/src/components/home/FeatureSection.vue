@@ -10,9 +10,9 @@
                 <Card
                 v-for="feature in features"
                 :key="feature.title"
-                :title="feature.title"
-                :description="feature.description">
+                :title="feature.title">
                 <template #icon>{{ feature.icon }}</template>
+                {{ feature.description }}
                 </Card>
             </div>
       </div>

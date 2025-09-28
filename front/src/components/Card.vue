@@ -4,16 +4,14 @@
             <slot name="icon"></slot>
         </div>
         <h3 class="card-title">{{ title }}</h3>
-        <p class="card-description">{{ description }}</p>
+        <div class="card-content">
+          <slot></slot>
+        </div>
     </div>
 </template> 
 <script setup>
 defineProps({
     title:{
-        type: String,
-        required: true
-    }, 
-    description:{
         type: String,
         required: true
     }

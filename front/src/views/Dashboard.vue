@@ -8,9 +8,17 @@
                 </div>
                 <div class="cards-container">
                     <Card 
-                    v-for="car_data in cards_data"
-                    :title="car_data.title">
-                    <tempalte>{{ data }}</tempalte>
+                    v-for="card_data in cards_data"
+                    :key="card_data.title"
+                    :title="card_data.title">
+                    <ul
+                        v-if="card_data.content && card_data.content.length > 0">
+                        <li v-for="item in card_data.content"
+                            :key="item.id">
+                            {{ item.text }}
+                        </li>
+                    </ul>
+                    <p v-else>No data to show</p>
                     </Card>
                 </div>
 
@@ -25,6 +33,10 @@ const today = new Date().toDateString();
 const cards_data = ref([
     {
         title: "Todays medication",
+        content: [
+            { id: 1, text: "Vitamin D (1 tab) at 08:00" },
+            { id: 2, text: "Magnessium (2 tabs) at 20:00" },
+        ],
     },
     {
         title: "Todays meals",
