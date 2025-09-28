@@ -33,11 +33,12 @@ import { RouterLink } from 'vue-router';
 
 <style scoped>
 .navbar{
-    background-color: #ffff;
+    background-color: var(--white-color);
     padding: 1rem 2rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-sm);
     position: sticky;
     top: 0;
+    z-index: 1000;
 }
 .navbar > div{
     display: flex;

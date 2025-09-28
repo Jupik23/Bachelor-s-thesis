@@ -20,9 +20,10 @@
 <style scoped>
 .hero-section{
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 5rem;
+  gap: 2rem;
   padding: 4rem 2rem;
 }
 .content-container{
@@ -31,21 +32,26 @@
   align-items: flex-start;
 }
 .welcome-header{
-  font-size: 3.5rem;
+  font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 700;
   line-height: 1.2;
-  color: #2c3e50;
+  color: var(--text-color-dark);
   margin-bottom: 2rem;
 }
 .welcome-paragraph{
-  width: 50rem;
+  width: 90%;
+  max-width: 50rem;
+  height: auto;
   font-size: 1.25rem;
-  color:#7f8c8d;
+  color: var(--text-color-subtle);
   margin-top: 1rem;
 }
 .well-plan-image{
   margin-top: 8%;
-  width: 50rem;
+  width: 100%;
+  max-width: 50rem;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-md);
 }
 .start-button{
   display: flex;
@@ -58,27 +64,26 @@
 }
 .btn {
   padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 .btn-primary {
-  background-color: #27ae60;
-  color: white;
+  background-color: var(--primary-color);
+  color: var(--white-color);
 }
 .btn-primary:hover {
-  background-color: #229954;
+  background-color: var(--primary-color-hover);
   transform: translateY(-2px);
 }
 .btn-secondary {
-  background-color: #ecf0f1;
-  color: #2c3e50;
-  border: 1px solid #bdc3c7;
+  background-color: var(--secondary-color);
+  color: var(--text-color-dark);
+  border: 1px solid var(--border-color);
 }
 .btn-secondary:hover {
-  background-color: #dcdde1;
+  background-color: var(--secondary-color-hover);
 }
 </style>

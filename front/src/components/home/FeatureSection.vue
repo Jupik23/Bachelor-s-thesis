@@ -58,19 +58,23 @@ const features = ref([
 </script>
 <style scoped>
 .features-section {
-  background-color: #f8f9fa;
+  background-color: var(--background-color-light);
   padding: 5rem 2rem;
   text-align: center;
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 .section-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--text-color-dark);
   margin-bottom: 1rem;
 }
 .section-subtitle {
   font-size: 1.1rem;
-  color: #7f8c8d;
+  color: var(--text-color-subtle);
   margin-bottom: 4rem;
   max-width: 600px;
   margin-left: auto;
@@ -80,7 +84,5 @@ const features = ref([
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 </style>
