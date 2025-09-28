@@ -6,13 +6,34 @@
                     <p id="date">Today's overview: {{today}}</p>
                     <button>Change Health metrics</button>
                 </div>
-                
+                <div class="cards-container">
+                    <Card 
+                    v-for="car_data in cards_data"
+                    :title="car_data.title">
+                    <tempalte>{{ data }}</tempalte>
+                    </Card>
+                </div>
+
             </div> 
     </div>
 
 </template>
 <script setup>
+import {ref} from "vue"
+import Card from "@/components/Card.vue"
 const today = new Date().toDateString();
+const cards_data = ref([
+    {
+        title: "Todays medication",
+    },
+    {
+        title: "Todays meals",
+    },
+    {
+        title: "Interaction alerts",
+    },
+
+])
 </script>
 
 <style scoped>
@@ -46,6 +67,13 @@ const today = new Date().toDateString();
 .date-change-log button:hover {
   background-color: var(--primary-color-hover);
   transform: translateY(-2px);
+}
+
+.cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 5% 0 5% 0;
 }
 
 </style>
