@@ -3,14 +3,14 @@ import { userAuthStore } from "@/lib/auth";
 
 const routes = [
     { path: "/", name: "home", 
-        component: () => import("../views/Home.vue") ,
+        component: () => import("@/views/Home.vue") ,
         meta: {
             requiresAuth: false,
             forVisitors: true,
         }
     },
     { path: "/login", name: "login",
-        component: () => import("../views/Login.vue"), 
+        component: () => import("@/views/Login.vue"), 
         props: { initialMode: "login" },
         meta: {
             requiresAuth: false,
@@ -18,7 +18,7 @@ const routes = [
         }
     },
     { path: "/register", name: "register",
-        component: () => import("../views/Register.vue"), 
+        component: () => import("@/views/Register.vue"), 
         props: { initialMode: "register" },
         meta: {
             requiresAuth: false,
@@ -27,12 +27,19 @@ const routes = [
     },
     { path: "/health_form", 
         name: "health_form", 
-        component: () => import("../views/HealthForm.vue"),
+        component: () => import("@/views/HealthForm.vue"),
         meta: {
             requiresAuth: true,
             forVisitors: false,
         }
-    }
+    },
+    {path: "/dashboard",
+        name: "dashboard",
+        component: () => import("@/views/Dashboard.vue"),
+        meta: {
+            forVisitors: true
+        }
+    },
 ]
 
 const router = createRouter({

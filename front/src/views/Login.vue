@@ -1,8 +1,7 @@
 <template>
-  <BaseLayout>
     <section class="section">
       <div class="container">
-        <Card class="auth-card">
+        <div class="auth-card">
           <form class="stack-4" @submit.prevent="onLoginViaJson">
             <h1>Sign in</h1>
             <input v-model="login.email" type="text" placeholder="Email" required>
@@ -19,16 +18,14 @@
               <RouterLink to="/register">Create one</RouterLink>
             </p>
           </form>
-        </Card>
+        </div>
       </div>
     </section>
-  </BaseLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import BaseLayout from './Base.vue'
 import api, { setAuthToken } from '../lib/api.js'
 import { userAuthStore } from '@/lib/auth'
 import Card from "@/components/Card.vue"
