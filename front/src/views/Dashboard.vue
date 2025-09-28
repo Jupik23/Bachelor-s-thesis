@@ -6,6 +6,18 @@
                     <p id="date">Today's overview: {{today}}</p>
                     <button>Change Health metrics</button>
                 </div>
+                <div class="stats-container">
+                    <Card
+                        class="stat-card`"
+                        v-for="stat in stats"
+                        :key="stat.title"
+                        :title="stat.title">
+                        <div class="stat-data-row"> 
+                            <p class="stat-value">{{ stat.value }}</p>
+                            <p class="stat-unit" v-if="stat.unit">{{ stat.unit }}</p>
+                        </div>
+                    </Card>
+                </div>
                 <div class="cards-container">
                     <Card 
                     v-for="card_data in cards_data"
@@ -19,6 +31,12 @@
                         </li>
                     </ul>
                     <p v-else>No data to show</p>
+                    <button 
+                            v-if="card_data.title !== 'Interaction alerts'" 
+                            class="btn-primary"
+                            @click="viewFullSchedule(card_data.title)">
+                            View Full Schedule!
+                        </button>
                     </Card>
                 </div>
 
@@ -40,15 +58,46 @@ const cards_data = ref([
     },
     {
         title: "Todays meals",
+        content: [
+            { id: 1, text: "Breakfast 400 kcal"},
+            { id: 2, text: "Lunch 300 kcal"},
+            { id: 3, text: "Dinner 900 kcal"},
+        ]
     },
     {
         title: "Interaction alerts",
     },
 
 ])
+
+const stats = ref([
+    {
+        title: "Medications Taken",
+        value: 2,
+        unit: "/3",
+    },
+    {
+        title: "Remaining Calories",
+        value: 1200,
+        unit: "kcal",
+    },
+    {
+        title: "Health Score",
+        value: 95,
+        unit: "%",
+    },
+])
 </script>
 
 <style scoped>
+
+.stats-card {
+    background-color: var(--secondary-color, #e0f7fa); 
+    box-shadow: var(--shadow-sm);
+    padding: 1rem; 
+    text-align: center;
+    max-width: none; 
+}
 .date-change-log {
   display: flex;
   align-items: center;
@@ -65,7 +114,7 @@ const cards_data = ref([
   color: var(--text-color-dark);
 }
 
-.date-change-log button {
+.date-change-log button, .btn-primary {
   padding: 8px 16px;
   border-radius: var(--border-radius-md);
   border: none;
@@ -74,6 +123,13 @@ const cards_data = ref([
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+}
+
+.btn-primary{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
 }
 
 .date-change-log button:hover {
@@ -86,6 +142,33 @@ const cards_data = ref([
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
   margin: 5% 0 5% 0;
+}
+
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+  gap: 1rem;
+}
+
+.stats-card .card-title {
+    font-size: 0.9rem;
+    color: var(--text-color-dark);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 2rem; 
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+    margin: 0;
+}
+
+.stat-unit {
+    font-size: 0.8rem;
+    color: var(--text-color-subtle);
+    margin: 0;
 }
 
 </style>
