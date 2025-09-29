@@ -26,11 +26,13 @@ const routes = [
         }
     },
     { path: "/health_form", 
-        name: "health_form", 
+        name: "healthform", 
         component: () => import("@/views/HealthForm.vue"),
         meta: {
-            requiresAuth: true,
-            forVisitors: false,
+            // uncomment after building FE
+            // requiresAuth: true,
+            // forVisitors: false,
+            forVisitors: true
         }
     },
     {path: "/dashboard",

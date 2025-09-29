@@ -1,5 +1,4 @@
 <template>
-<BaseLayout>
   <form class="form" @submit.prevent="handleSubmit">
     <input v-model="weight" placeholder="weight" type="number" min="1" step="0.1" />
     <input v-model="height" placeholder="height"  type="number" min="1" step="0.1"/>
@@ -24,114 +23,99 @@
     />
 
     <input v-model="medicaments" placeholder="Medicaments taken" />
-     <button class="submit" type="submit" :disabled="isLoading">
+    <div class="button">
+      <button class="btn-primary" type="submit" :disabled="isLoading">
       {{ isLoading ? 'Submitting...' : 'Submit' }}
     </button>
+    </div>
     <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
     <div v-if="failureMessage" class="error-message">{{ failureMessage }}</div>
   </form>
-  </BaseLayout>
 </template>
-<script setup>
-import BaseLayout from './Base.vue'
-</script>
 
-<script>
+<script setup>
 import { ref } from 'vue';
 import Multiselect from 'vue-multiselect'
 import "vue-multiselect/dist/vue-multiselect.min.css";
-import api from "../lib/api.js"
-export default {
-  name: 'HealthForm',
-  components:{
-    BaseLayout,
-    Multiselect,
-  },
-  data(){
-    return {
-      formData:{
-        weight: null,
-        height: null,
-        numberOfMeals: null,
-        selectedIntolerances: [],
-        selectedPreferences: [],
-        medicaments: '' //to do :)
-      },
-      preferences: [
-        { name: 'Vegetarian' },
-        { name: 'Vegan' },
-        { name: 'Keto' },
-        { name: 'Low Carb' },
-        { name: 'Mediterranean' },
-        { name: 'Paleo' }
-      ],
-      intolerances:[
-        { name: 'Lactose' },
-        { name: 'Gluten' },
-        { name: 'Nuts' },
-        { name: 'Shellfish' },
-        { name: 'Eggs' },
-        { name: 'Soy' }
-      ],
-      isLoading: false,
-      successMessage: "",
-      failureMessage: ""
-    }
-  },
-  methods:{
-    async handleSubmit(){
-      if (!this.validateForm()){
-        return
-      }
-      if (this.isLoading){
-        console.log("loading")
-        return
-      }
-      this.failureMessage = "";
-      this.successMessage = "";
-      this.isLoading = true
-      try{
-        const healthDataFromForm={
-          height: this.height,
-          weight: this.weight,
-          number_of_meals_per_day: this.numberOfMeals,
-          diet_preferences: this.selectedPreferences.map(pref=>pref.name),
-          intolerances: this.selectedIntolerances.map(pref=>pref.name),
-          medicament_usage: this.medicaments,
-        }
-        const response = await api.post("/api/v1/health-form", healthDataFromForm)
-        this.successMessage = "Form submitted!"
-        this.resetForm()
-      }catch (error) {
-        console.error("Submission error:", error);
-        this.failureMessage = "Failed to submit form."
-      }finally{
-        this.isLoading = false
-      }
-    },
-    validateForm(){
-      if (!this.weight || this.weight <= 0){
-        this.failureMessage = "Enter valid weight"
-        return false;s
-      }
-      if (!this.height || this.height <= 0) {
-        this.failureMessage = "Please enter a valid height.";
-        return false;
-      }
-      if (!this.numberOfMeals || this.numberOfMeals < 1 || this.numberOfMeals > 6) {
-        this.failureMessage = "Please enter a valid number of meals (1-6).";
-        return false;
-      }
-      return true;
-    },
-    resetForm(){
-      this.weight = null;
-      this.height = null;
-      this.numberOfMeals = null;
-      this.selectedIntolerances = [];
-      this.selectedPreferences = [];
-      this.medicaments = '';
-    }
+import api from "../lib/api.js";
+
+//health form data - that will be given by user
+const weight = ref(null);
+const height = ref(null);
+const numberOfMeals = ref(null);
+const selectedIntolerances = ref([]);
+const selectedPreferences = ref([]);
+const medicaments = ref('');
+
+//preferences, intolerances from spoonacular docs
+const preferences = ref([
+    { name: 'Vegetarian' }, { name: 'Vegan' }, { name: 'Keto' },
+    { name: 'Low Carb' }, { name: 'Mediterranean' }, { name: 'Paleo' }
+]);
+const intolerances = ref([
+    { name: 'Lactose' }, { name: 'Gluten' }, { name: 'Nuts' },
+    { name: 'Shellfish' }, { name: 'Eggs' }, { name: 'Soy' }
+]);
+
+//UI variables
+const isLoading = ref(false);
+const successMessage = ref("");
+const failureMessage = ref("");
+
+const restartForm = () => {
+  weight.value = null;
+  height.value = null;
+  numberOfMeals.value = null;
+  selectedIntolerances.value = null;;
+  selectedPreferences.value = null;
+  medicaments.value = '';
+}
+
+const validateForm = () =>{
+  if (weight.value <= 0 || !weight.value){
+    failureMessage.value = "Enter valid weight"
+    return false
+  }
+
+  if (height.value <= 0 || !height.value){
+    failureMessage.value = "Enter valid heght"
+    return false
+  }
+
+  if (numberOfMeals.value <= 0 || !numberOfMeals.value){
+    failureMessage.value = "Enter valid number of meals (range 1-6)"
+    return false
+  }
+  return true
+}
+
+const handleSubmit = async () => {
+  if (!validateForm() || isLoading.value){
+    return;
+  }
+  isLoading.value = true;
+  failureMessage.value = ""
+  successMessage.value = ""
+  try{
+    const dataFormValues = {
+      height: height.value,
+      weight: weight.value,
+      number_of_meals_per_day: numberOfMeals.value,
+      diet_preferences: selectedPreferences.value.map(pref=>pref.name),
+      intolerances: selectedIntolerances.value.map(pref=>pref.name),
+      medicament_usage: medicaments.value,
+    };
+    await api.post("/api/v1/health-form", dataFormValues)
+
+    successMessage.value = "Form submitted"
+    restartForm()
+  }
+  catch (error){
+    console.log(error)
+    failureMessage.value = "Failed to submit form."
+  }
+  finally{
+    isLoading.value = false;
   }
 }
 </script>
@@ -147,6 +131,25 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+}
+.button{
+  display: flex;
+  justify-content: center;
+}
+.btn-primary{
+  background-color: var(--background-color);
+  color: var(--color);
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.btn-primary:hover {
+  background-color: var(--background-color);
+  transform: translateY(-2px);
 }
 input {
   padding: 0.6rem 0.8rem;
