@@ -8,8 +8,8 @@
       v-model="selectedPreferences"
       :options="preferences"
       :multiple="true"
-      label="name"
-      track-by="name"
+      label="preference"
+      track-by="preference"
       placeholder="Select preferences"
     />
     
@@ -17,8 +17,8 @@
       v-model="selectedIntolerances"
       :options="intolerances"
       :multiple="true"
-      label="name"
-      track-by="name"
+      label="intolerance"
+      track-by="intolerance"
       placeholder="Select intolerances"
     />
 
@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import Multiselect from 'vue-multiselect'
 import "vue-multiselect/dist/vue-multiselect.min.css";
 import api from "../lib/api.js";
@@ -48,14 +48,27 @@ const selectedPreferences = ref([]);
 const medicaments = ref('');
 
 //preferences, intolerances from spoonacular docs
-const preferences = ref([
-    { name: 'Vegetarian' }, { name: 'Vegan' }, { name: 'Keto' },
-    { name: 'Low Carb' }, { name: 'Mediterranean' }, { name: 'Paleo' }
-]);
-const intolerances = ref([
-    { name: 'Lactose' }, { name: 'Gluten' }, { name: 'Nuts' },
-    { name: 'Shellfish' }, { name: 'Eggs' }, { name: 'Soy' }
-]);
+const preferences = ref([])
+const intolerances = ref([]);
+
+const initializeDataFromDB = async ()=> {
+  try{ 
+    const [preferences_response, intolerances_response] = await Promise.all([
+      api.get("api/v1/preferences"),
+      api.get("api/v1/intolerances")
+    ]);
+    preferences.value = preferences_response.data;
+    intolerances.value = intolerances_response.data;
+  }catch (error){
+    console.error("Failed to fetch initial data:", error);
+  }finally {
+        isLoading.value = false;
+    }
+}
+
+onMounted(() => {
+  initializeDataFromDB();
+})
 
 //UI variables
 const isLoading = ref(false);
@@ -159,11 +172,18 @@ input {
   transition: border 0.2s;
 }
 .multiselect__tag {
-  background: radial-gradient(1200px 600px at 10% -10%, rgba(59,130,246,.08), transparent 60%),
-             radial-gradient(900px 500px at 110% 110%, rgba(16,185,129,.07), transparent 60%),
-             var(--bg);
-  color: white;
-  border-radius: 8px;
+  background: var(--bg);
+  color: var(--primary-color);
+  border-color: var(--border-color);
+  border-radius: 50px;
   padding: 4px 8px;
+  box-shadow: var(--shadow-md);
+  width: 25%;
+}
+.error-message{
+  color: red;
+}
+.success-message{
+  color: var(--primary-color)
 }
 </style>

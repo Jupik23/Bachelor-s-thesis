@@ -44,7 +44,7 @@ async function onLoginViaJson() {
       password: login.value.password
     })
     if(res.success){
-      router.push("/Dashboard")
+      router.push("/dashboard")
     }else{
       err.value = res.Error
     }

@@ -52,6 +52,16 @@ CREATE TABLE IF NOT EXISTS meals (
     eaten BOOLEAN DEFAULT FALSE NOT NULL,
     comment VARCHAR
 );
+
+CREATE TABLE IF NOT EXISTS diet_intolerances (
+    id SERIAL PRIMARY KEY,
+    intolerance VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS diet_preferences (
+    id SERIAL PRIMARY KEY,
+    preference VARCHAR
+);
 CREATE INDEX IF NOT EXISTS idx_users_login ON users(login);
 CREATE INDEX IF NOT EXISTS idx_user_auth_user_id ON user_auth(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_auth_email ON user_auth(email);
@@ -59,7 +69,6 @@ CREATE INDEX IF NOT EXISTS idx_oauth2_accounts_user_id ON oauth2_accounts(user_i
 CREATE INDEX IF NOT EXISTS idx_health_forms_user_id ON health_forms(user_id);
 CREATE INDEX IF NOT EXISTS idx_plans_user_id ON plans(user_id);
 CREATE INDEX IF NOT EXISTS idx_meals_plan_id ON meals(plan_id);
-
 
 -- Użytkownicy
 INSERT INTO users (name, surname, login) VALUES
@@ -105,3 +114,11 @@ INSERT INTO meals (plan_id, meal_type, time, description, eaten, comment) VALUES
 (3, 'BREAKFAST', '09:00', 'Smoothie bananowo-truskawkowe', FALSE, NULL),
 (3, 'LUNCH', '14:00', 'Filet z łososia + kasza jaglana', FALSE, NULL),
 (3, 'DINNER', '20:00', 'Kanapki pełnoziarniste z hummusem', FALSE, NULL);
+
+INSERT INTO diet_preferences (preference) VALUES
+('Vegetarian'), ('Vegan'), ('Keto'),
+('Low Carb'), ('Mediterranean'), ('Paleo');
+
+INSERT INTO diet_intolerances (intolerance) VALUES
+('Lactose'), ('Gluten'), ('Nuts'),
+('Shellfish'), ('Eggs'), ('Soy');

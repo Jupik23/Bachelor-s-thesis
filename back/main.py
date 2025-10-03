@@ -5,6 +5,8 @@ from app.api.routes.user import router as user_router
 from app.api.routes.spoonacular import router as spoon_router
 from app.api.routes.healthform import router as healthform
 from app.api.routes.auth import router as auth
+from app.api.routes.intolerance import router as intolerance
+from app.api.routes.preference import router as preference
 import uvicorn
 import sys
 import os
@@ -25,6 +27,8 @@ app.include_router(user_router)
 app.include_router(spoon_router)
 app.include_router(healthform)
 app.include_router(auth)
+app.include_router(preference)
+app.include_router(intolerance)
 
 #+local
 if __name__=="__main__":
