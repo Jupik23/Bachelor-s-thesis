@@ -58,10 +58,10 @@ const populateForm = (data) => {
   numberOfMeals.value = data.number_of_meals_per_day;
 
   selectedIntolerances.value = intolerances.value.filter(i=> 
-    data.intolerances?.include(i.intolerance)
+    data.intolerances?.includes(i.intolerance)
   )
   selectedPreferences.value = preferences.value.filter(p=> 
-    data.diet_preferences?.include(p.preference)
+    data.diet_preferences?.includes(p.preference)
   )
   
   medicaments.value = data.medicament_usage || '';
