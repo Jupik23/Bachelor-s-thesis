@@ -12,7 +12,7 @@ def create_health_form_crud(db:Session, health_care_input: HealthFormCreate, use
     return new_health_form
 
 def get_health_form_by_user_id(db: Session, user_id: int):
-    return db.query(HealthForm).filter(user_id == HealthForm.user_id).first()
+    return db.query(HealthForm).filter(HealthForm.user_id == user_id).first()
 
 def update_health_form(db:Session, user_id: int, update_data: HealthFormUpdate):
     user_health_form = get_health_form_by_user_id(db, user_id=user_id)

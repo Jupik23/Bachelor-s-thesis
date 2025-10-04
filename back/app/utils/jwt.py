@@ -62,7 +62,7 @@ def get_current_user_data(token: str = Depends(oauth2_scheme)):
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_database)):
     try:
         user_data = get_current_user_data(token)
-        user =  get_user_info_by_id(user_data["user_id"])
+        user =  get_user_info_by_id(db, user_data["user_id"])
         if user is None:
             raise HTTPException(
                 status_code = status.HTTP_401_UNAUTHORIZED,

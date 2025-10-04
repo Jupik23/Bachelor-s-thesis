@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS health_forms (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     height INTEGER,
     weight INTEGER,
     number_of_meals_per_day INTEGER,

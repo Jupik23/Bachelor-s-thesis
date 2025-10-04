@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.user import router as user_router
 from app.api.routes.spoonacular import router as spoon_router
-from app.api.routes.healthform import router as healthform
+from app.api.routes.health_form import router as healthform
 from app.api.routes.auth import router as auth
 from app.api.routes.intolerance import router as intolerance
 from app.api.routes.preference import router as preference

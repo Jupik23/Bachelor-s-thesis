@@ -56,23 +56,13 @@ const populateForm = (data) => {
   height.value = data.height;
   weight.value = data.weight;
   numberOfMeals.value = data.number_of_meals_per_day;
-  if (data.diet_preferences) {
-    const prefNames = typeof data.diet_preferences === 'string' 
-      ? data.diet_preferences.split(',') 
-      : data.diet_preferences;
-    selectedPreferences.value = preferences.value.filter(p => 
-      prefNames.includes(p.name)
-    );
-  }
-  
-  if (data.intolerances) {
-    const intolNames = typeof data.intolerances === 'string'
-      ? data.intolerances.split(',')
-      : data.intolerances;
-    selectedIntolerances.value = intolerances.value.filter(i => 
-      intolNames.includes(i.name)
-    );
-  }
+
+  selectedIntolerances.value = intolerances.value.filter(i=> 
+    data.intolerances?.include(i.intolerance)
+  )
+  selectedPreferences.value = preferences.value.filter(p=> 
+    data.diet_preferences?.include(p.preference)
+  )
   
   medicaments.value = data.medicament_usage || '';
   hasExistingForm.value = true;
@@ -152,8 +142,8 @@ const handleSubmit = async () => {
       height: height.value,
       weight: weight.value,
       number_of_meals_per_day: numberOfMeals.value,
-      diet_preferences: selectedPreferences.value.map(pref=>pref.name).join(','),
-      intolerances: selectedIntolerances.value.map(pref=>pref.name).join(','),
+      diet_preferences: selectedPreferences.value.map(pref=>pref.preference),
+      intolerances: selectedIntolerances.value.map(pref=>pref.intolerance),
       medicament_usage: medicaments.value,
     };
     const response = await api.put("/api/v1/health-form", dataFormValues)
