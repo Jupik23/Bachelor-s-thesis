@@ -54,17 +54,14 @@ class UserService:
     
         return original_hash == new_hash
     
-    # @staticmethod
-    # def update_last_login_status():
-    #     pass
-
     @staticmethod
     def change_password(db:Session, change_password_data: PasswordUpdateRequest, user_id:int):
         user_auth = get_user_auth_by_id(db, user_id=user_id)
 
         if not user_auth:
             raise ValueError("User not found")
-        
+        if change_password_data.password_match():
+            raise ValueError("Passwords do not match")
         if not UserService.verify_password(change_password_data.current_password, user_auth.password):
             raise ValueError("Current password is incorect")
         

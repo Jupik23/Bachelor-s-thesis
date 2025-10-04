@@ -4,7 +4,7 @@
             <div>
                 <div class="date-change-log">
                     <p id="date">Today's overview: {{today}}</p>
-                    <button>Change Health metrics</button>
+                    <RouterLink to="/health_form">Change Health metrics</RouterLink>
                 </div>
                 <Stats :stats="stats"></Stats>
                 <TodayInfo :cardsData="cards_data"></TodayInfo>

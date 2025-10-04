@@ -11,7 +11,7 @@ export const userAuthStore = defineStore("auth", {
         isLoggedIn: (state) => state.isAuthenticated && state.token !== null,
     },
     actions: {
-        async Login(credentials) {
+        async login(credentials) {
             try{
                 const response = await api.post("api/v1/auth/session", credentials)
                 const {access_token} = response.data
@@ -48,12 +48,12 @@ export const userAuthStore = defineStore("auth", {
             return false
         }
     },
-    initializeAuth(){
+    async initializeAuth(){
         const token = localStorage.getItem("token")
         if(token){
             setAuthToken(token)
             this.token = token
-            this.checkToken()
+            await this.checkToken()
         }
     }
     }

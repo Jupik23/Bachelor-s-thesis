@@ -1,7 +1,7 @@
-<script setup lang="ts">
+<script setup>
 import { userAuthStore } from '@/lib/auth';
 import { RouterLink } from 'vue-router';
-
+const authStore = userAuthStore();
 </script>
 
 <template>
@@ -16,13 +16,13 @@ import { RouterLink } from 'vue-router';
                 <li><RouterLink to="/about" class="nav-link">About</RouterLink></li>
             </ul>
             <div class="login-logout">
-                <template v-if="!userAuthStore.isLoggedIn">
+                <template v-if="!authStore.isLoggedIn">
                     <RouterLink to="/login">Sign In</RouterLink>
                     <RouterLink to="/register">Get Started</RouterLink>
                 </template>
                 <template v-else>
                     <RouterLink to="/dashboard">Profile</RouterLink>
-                    <button @click="userAuthStore.Logout()">Logout</button>
+                    <RouterLink to="/login" @click="authStore.logout">Logout</RouterLink>
                 </template>
             </div>
             

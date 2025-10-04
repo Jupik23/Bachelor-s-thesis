@@ -38,14 +38,14 @@ async function onLoginViaJson() {
   err.value = null
   try{
     const authStore = userAuthStore()
-    const res = await authStore.Login({
+    const res = await authStore.login({
       email: login.value.email,
       password: login.value.password
     })
     if(res.success){
       router.push("/dashboard")
     }else{
-      err.value = res.Error
+      err.value = res.error
     }
   }catch(e){
     err.value = "Login failed"
