@@ -1,10 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
-
-class DietPreferences(BaseModel):
-    diets: List[str]
- 
 class HealthFormCreate(BaseModel):
     height: int
     weight: int
@@ -12,7 +8,7 @@ class HealthFormCreate(BaseModel):
     diet_preferences: List[str]
     intolerances: List[str]
     medicament_usage: str
-
+    
 class HealthFormUpdate(BaseModel):
     height: Optional[int] = None
     weight: Optional[int] = None
@@ -25,6 +21,7 @@ class HealthFormResponse(HealthFormCreate):
     id: int
     user_id: int
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

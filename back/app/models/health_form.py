@@ -9,6 +9,7 @@ class HealthForm(Base):
     id = Column(Integer, nullable = False, primary_key = True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable = False)
     created_at = Column(DateTime, default = datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime)
     height = Column(Integer)
     weight = Column(Integer)  
     number_of_meals_per_day = Column(Integer)

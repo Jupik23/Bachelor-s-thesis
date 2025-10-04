@@ -1,7 +1,9 @@
 import os, httpx, asyncio, logging
 from typing import Dict, Any
 from app.schemas.spoonacular import Recipe
-from app.schemas.health_form import HealthFormCreate, DietPreferences
+from app.schemas.health_form import HealthFormCreate
+from app.schemas.preference import PrecefenceResponce
+from app.schemas.intolerances import IntoleranceResponse
 
 class Spoonacular():
     def __init__(self):

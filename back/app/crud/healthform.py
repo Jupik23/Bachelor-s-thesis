@@ -14,7 +14,7 @@ def create_health_form_crud(db:Session, health_care_input: HealthFormCreate, use
 def get_health_form_by_user_id(db: Session, user_id: int):
     return db.query(HealthForm).filter(user_id == HealthForm.user_id).first()
 
-def update_healt_form_crud(db:Session, user_id: int, update_data: HealthFormUpdate):
+def update_health_form(db:Session, user_id: int, update_data: HealthFormUpdate):
     user_health_form = get_health_form_by_user_id(db, user_id=user_id)
     if not user_health_form:
         return None
@@ -24,3 +24,4 @@ def update_healt_form_crud(db:Session, user_id: int, update_data: HealthFormUpda
         setattr(user_health_form, field, value)
     db.commit()
     db.refresh(user_health_form)  
+    return user_health_form

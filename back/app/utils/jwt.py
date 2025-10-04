@@ -59,7 +59,7 @@ def get_current_user_data(token: str = Depends(oauth2_scheme)):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends()):
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_database)):
     try:
         user_data = get_current_user_data(token)
         user =  get_user_info_by_id(user_data["user_id"])

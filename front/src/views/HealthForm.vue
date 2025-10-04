@@ -50,15 +50,53 @@ const medicaments = ref('');
 //preferences, intolerances from spoonacular docs
 const preferences = ref([])
 const intolerances = ref([]);
+const hasExistingForm = ref(false)
+
+const populateForm = (data) => {
+  height.value = data.height;
+  weight.value = data.weight;
+  numberOfMeals.value = data.number_of_meals_per_day;
+  if (data.diet_preferences) {
+    const prefNames = typeof data.diet_preferences === 'string' 
+      ? data.diet_preferences.split(',') 
+      : data.diet_preferences;
+    selectedPreferences.value = preferences.value.filter(p => 
+      prefNames.includes(p.name)
+    );
+  }
+  
+  if (data.intolerances) {
+    const intolNames = typeof data.intolerances === 'string'
+      ? data.intolerances.split(',')
+      : data.intolerances;
+    selectedIntolerances.value = intolerances.value.filter(i => 
+      intolNames.includes(i.name)
+    );
+  }
+  
+  medicaments.value = data.medicament_usage || '';
+  hasExistingForm.value = true;
+}
 
 const initializeDataFromDB = async ()=> {
   try{ 
     const [preferences_response, intolerances_response] = await Promise.all([
       api.get("api/v1/preferences"),
-      api.get("api/v1/intolerances")
+      api.get("api/v1/intolerances"),
     ]);
     preferences.value = preferences_response.data;
     intolerances.value = intolerances_response.data;
+    try{
+      const userFormResponse = await api.get("api/v1/health-form/me");
+      if (userFormResponse.data) {
+        populateForm(userFormResponse.data);
+      }  
+    }catch(error){
+      if (error.response && error.response.status ===404){
+        hasExistingForm.value = false;
+        failureMessage.value = "Coulnd not load data"
+      }
+    }
   }catch (error){
     console.error("Failed to fetch initial data:", error);
   }finally {
@@ -79,8 +117,8 @@ const restartForm = () => {
   weight.value = null;
   height.value = null;
   numberOfMeals.value = null;
-  selectedIntolerances.value = null;;
-  selectedPreferences.value = null;
+  selectedIntolerances.value = [];;
+  selectedPreferences.value = [];
   medicaments.value = '';
 }
 
@@ -91,7 +129,7 @@ const validateForm = () =>{
   }
 
   if (height.value <= 0 || !height.value){
-    failureMessage.value = "Enter valid heght"
+    failureMessage.value = "Enter valid height"
     return false
   }
 
@@ -114,14 +152,15 @@ const handleSubmit = async () => {
       height: height.value,
       weight: weight.value,
       number_of_meals_per_day: numberOfMeals.value,
-      diet_preferences: selectedPreferences.value.map(pref=>pref.name),
-      intolerances: selectedIntolerances.value.map(pref=>pref.name),
+      diet_preferences: selectedPreferences.value.map(pref=>pref.name).join(','),
+      intolerances: selectedIntolerances.value.map(pref=>pref.name).join(','),
       medicament_usage: medicaments.value,
     };
-    await api.post("/api/v1/health-form", dataFormValues)
-
-    successMessage.value = "Form submitted"
-    restartForm()
+    const response = await api.put("/api/v1/health-form", dataFormValues)
+    populateForm(response.data);
+    successMessage.value = hasExistingForm.value 
+      ? "Form updated successfully" 
+      : "Form created successfully";
   }
   catch (error){
     console.log(error)
