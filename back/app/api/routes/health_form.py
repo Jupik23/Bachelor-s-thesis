@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.services.health_form import HealthFormService
 from app.utils.jwt import get_current_user
+from app.services.calculator import CalculatorService
+from app.schemas.health_form import CalorieTargetResponse
 
 router = APIRouter(prefix="/api/v1/health-form",tags=["health-form"])
 
@@ -55,3 +57,20 @@ def upsert_health_form(input: HealthFormCreate,
         return form
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/me/calories", response_model=CalorieTargetResponse)
+def count_calories(db: Session = Depends(get_database), user: dict = Depends(get_current_user)):
+    health_form = HealthFormService(db)
+    user_health_form = health_form.get_health_form(user=user.id)
+
+    if not user_health_form:
+        HTTPException(status_code=404,
+                      detail="No Health form found in db"
+                      )
+    try:
+        calculate = CalculatorService()
+        result = calculate.get_result_for_user(health_form=health_form)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    

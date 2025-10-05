@@ -19,6 +19,20 @@ class CalorieGoal(str, Enum):
     mild_gain = "mild_gain"
     gain = "gain"
 
+class MealType(str, Enum):
+    breakfast = "breakfast"
+    second_breakfast = "second_breakfast"
+    lunch = "lunch"
+    snack = "snack"
+    dinner = "dinner"
+    supper = "supper"
+
+class WithMealRelation(str, Enum):
+    before = "before"
+    during = "during"
+    after = "after"
+    empty_stomach = "empty_stomach"
+
 ACTIVITY_LEVEL_MULTIPLIERS = {
     ActivityLevel.sedentary: 1.2, 
     ActivityLevel.light: 1.375,   

@@ -1,4 +1,3 @@
-import app.models
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.user import router as user_router

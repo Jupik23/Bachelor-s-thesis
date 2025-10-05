@@ -1,7 +1,7 @@
 <template>
   <form class="form" @submit.prevent="handleSubmit">
-    <input v-model="weight" placeholder="weight" type="number" min="1" step="0.1" />
-    <input v-model="height" placeholder="height"  type="number" min="1" step="0.1"/>
+    <input v-model="weight" placeholder="weight" type="number" min="1" step="1" />
+    <input v-model="height" placeholder="height"  type="number" min="1" step="1"/>
     <input v-model="numberOfMeals" placeholder="number of meals" type="number" min="1"  max="6"/>
     
     <multiselect
