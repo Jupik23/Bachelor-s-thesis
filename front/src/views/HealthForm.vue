@@ -23,6 +23,33 @@
     />
 
     <input v-model="medicaments" placeholder="Medicaments taken" />
+    <br/>
+    <input v-model="age" type="number" placeholder="Age" min="16" max="100"/>
+    <multiselect
+      v-model="selectedActivityGoal"
+      :options="activityLevels"
+      :multiple="false"
+      label="label"
+      track-by="value"
+      placeholder="You daily activity"
+    />
+    <multiselect
+      v-model="selectedCalorieGoal"
+      :options="calorieGoals"
+      :multiple="false"
+      label="label"
+      track-by="value"
+      placeholder="You weight goal"
+    />
+    <multiselect
+      v-model="gender"
+      :options="sexOptions"
+      :multiple="false"
+      label="label"
+      track-by="value"
+      placeholder="Gender"
+    />
+
     <div class="button">
       <button class="btn-primary" type="submit" :disabled="isLoading">
       {{ isLoading ? 'Submitting...' : 'Submit' }}
@@ -46,6 +73,31 @@ const numberOfMeals = ref(null);
 const selectedIntolerances = ref([]);
 const selectedPreferences = ref([]);
 const medicaments = ref('');
+const selectedLevel = ref('moderate');
+const selectedGoal = ref('maintain');
+const age = ref(null);
+const gender = ref(null);
+
+const activityLevels = ref([
+  { label: "Sedentary (little or no exercise)", value: "sedentary" },
+  { label: "Lightly active (light exercise/sports 1-3 days/week)", value: "light" },
+  { label: "Moderately active (moderate exercise/sports 3-5 days/week)", value: "moderate" },
+  { label: "Active (hard exercise/sports 6-7 days a week)", value: "active" },
+  { label: "Very active (very hard exercise & physical job)", value: "very_active" }
+]);
+const calorieGoals = ref([
+  { label: "Extreme weight loss (about 1kg per week)", value: "extreme_loss" },
+  { label: "Weight loss (about 0.5kg per week)", value: "loss" },
+  { label: "Mild weight loss (about 0.25kg per week)", value: "mild_loss" },
+  { label: "Maintain weight", value: "maintain" },
+  { label: "Mild weight gain (about 0.25kg per week)", value: "mild_gain" },
+  { label: "Weight gain (about 0.5kg per week)", value: "gain" }
+]);
+
+const sexOptions = ref([ 
+    { label: "Male", value: "male" },
+    { label: "Female", value: "female" },
+]);
 
 //preferences, intolerances from spoonacular docs
 const preferences = ref([])
@@ -65,6 +117,11 @@ const populateForm = (data) => {
   )
   
   medicaments.value = data.medicament_usage || '';
+  age.value = data.age;
+  gender.value = data.gender;
+  selectedActivityLevel.value = activityLevels.value.find(o => o.value === data.activity_level) || null;
+  selectedCalorieGoal.value = calorieGoals.value.find(o => o.value === data.calorie_goal) || null;
+  
   hasExistingForm.value = true;
 }
 
@@ -103,15 +160,6 @@ const isLoading = ref(false);
 const successMessage = ref("");
 const failureMessage = ref("");
 
-const restartForm = () => {
-  weight.value = null;
-  height.value = null;
-  numberOfMeals.value = null;
-  selectedIntolerances.value = [];;
-  selectedPreferences.value = [];
-  medicaments.value = '';
-}
-
 const validateForm = () =>{
   if (weight.value <= 0 || !weight.value){
     failureMessage.value = "Enter valid weight"
@@ -145,6 +193,10 @@ const handleSubmit = async () => {
       diet_preferences: selectedPreferences.value.map(pref=>pref.preference),
       intolerances: selectedIntolerances.value.map(pref=>pref.intolerance),
       medicament_usage: medicaments.value,
+      age: age.value,
+      gender: gender.value ? gender.value.value : null,
+      activity_level: selectedActivityLevel.value?.value,
+      calorie_goal: selectedCalorieGoal.value?.value,
     };
     const response = await api.put("/api/v1/health-form", dataFormValues)
     populateForm(response.data);

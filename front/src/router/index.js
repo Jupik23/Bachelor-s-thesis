@@ -30,8 +30,9 @@ const routes = [
         component: () => import("@/views/HealthForm.vue"),
         meta: {
             // uncomment after building FE
-            requiresAuth: true,
-            forVisitors: false,
+            // requiresAuth: true,
+            // forVisitors: false,
+            forVisitors: true,
         }
     },
     {path: "/dashboard",
