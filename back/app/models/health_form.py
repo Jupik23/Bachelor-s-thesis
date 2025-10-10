@@ -14,9 +14,9 @@ class HealthForm(Base):
     height = Column(Integer)
     weight = Column(Integer)  
     age = Column(Integer, nullable = True) #need to change in future cuz age can change in time :) we will count current age 
-    gender = Column(Enum(Gender), nullable = True)
-    activity_level = Column(Enum(ActivityLevel), default=ActivityLevel.sedentary)
-    calorie_goal = Column(Enum(CalorieGoal), default=CalorieGoal.maintain)
+    gender = Column(Enum(Gender, name='gender_enum', create_type=True), nullable = True)
+    activity_level = Column(Enum(ActivityLevel, name='activity_enum', create_type=True), default=ActivityLevel.sedentary)
+    calorie_goal = Column(Enum(CalorieGoal, name='goal_enum', create_type=True), default=CalorieGoal.maintain)
     number_of_meals_per_day = Column(Integer)
     diet_preferences = Column(JSON, nullable=True)
     intolerances = Column(JSON, nullable=True)

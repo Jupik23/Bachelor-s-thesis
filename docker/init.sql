@@ -1,3 +1,28 @@
+-- Enums
+
+CREATE TYPE gender_enum AS ENUM (
+    'male',
+    'female'
+);
+
+CREATE TYPE activity_level_enum AS ENUM (
+    'sedentary',
+    'light',
+    'moderate',
+    'active',
+    'very_active'
+);
+
+CREATE TYPE calorie_goal_enum AS ENUM (
+    'maintain',
+    'mild_loss',
+    'loss',
+    'extreme_loss',
+    'mild_gain',
+    'gain'
+);
+
+
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL,
@@ -30,9 +55,9 @@ CREATE TABLE IF NOT EXISTS health_forms (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     age INTEGER,
-    gener JSON,
-    activity_level JSON,
-    calorie_goal JSON,
+    gender gender_enum,
+    activity_level activity_level_enum,
+    calorie_goal calorie_goal_enum,
     height INTEGER,
     weight INTEGER,
     number_of_meals_per_day INTEGER,

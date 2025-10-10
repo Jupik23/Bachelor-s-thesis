@@ -1,9 +1,50 @@
 <template>
   <form class="form" @submit.prevent="handleSubmit">
-    <input v-model="weight" placeholder="weight" type="number" min="1" step="1" />
-    <input v-model="height" placeholder="height"  type="number" min="1" step="1"/>
-    <input v-model="numberOfMeals" placeholder="number of meals" type="number" min="1"  max="6"/>
+    <h1> Health Form</h1>
+    <h2>1. Basic Information</h2>
+    <label for="age-input">Age</label>
+    <input v-model="age" type="number" placeholder="Age (e.g., 30)" min="16" max="100"/>  
+
+    <label for="gender-select">Gender</label>
+    <multiselect
+      v-model="gender"
+      :options="sexOptions"
+      :multiple="false"
+      label="label"
+      track-by="value"
+      placeholder="Gender"
+    />
     
+    <h2>2. Physical Parameters</h2>
+    <label for="weight-input">Weight (kg)</label>
+    <input v-model="weight" placeholder="Weight (e.g., 75)" type="number" min="1" step="1" />
+    <label for="height-input">Height (cm)</label>
+    <input v-model="height" placeholder="Height (e.g., 180)"  type="number" min="1" step="1"/>
+
+    <h2>3. Activity and Calorie Goals</h2>
+    <label for="activity-select">Daily Activity Level</label>
+    <multiselect
+      v-model="selectedActivityLevel"
+      :options="activityLevels"
+      :multiple="false"
+      label="label"
+      track-by="value"
+      placeholder="You daily activity"
+    />
+    <label for="calorie-goal-select">Weight Goal</label>
+    <multiselect
+      v-model="selectedCalorieGoal"
+      :options="calorieGoals"
+      :multiple="false"
+      label="label"
+      track-by="value"
+      placeholder="You weight goal"
+    />
+    <label for="meals-input">Number of Meals Per Day</label>
+    <input v-model="numberOfMeals" placeholder="Number of meals per day" type="number" min="1"  max="6"/>
+    
+    <h2>4. Dietary and Medical Requirements</h2>
+    <label for="preferences-select">Dietary Preferences</label>
     <multiselect
       v-model="selectedPreferences"
       :options="preferences"
@@ -13,6 +54,7 @@
       placeholder="Select preferences"
     />
     
+    <label for="inrolerances-select">Food Intolerances</label>
     <multiselect
       v-model="selectedIntolerances"
       :options="intolerances"
@@ -21,34 +63,8 @@
       track-by="intolerance"
       placeholder="Select intolerances"
     />
-
+    <label for="medicaments-taken">Medicaments</label>
     <input v-model="medicaments" placeholder="Medicaments taken" />
-    <br/>
-    <input v-model="age" type="number" placeholder="Age" min="16" max="100"/>
-    <multiselect
-      v-model="selectedActivityGoal"
-      :options="activityLevels"
-      :multiple="false"
-      label="label"
-      track-by="value"
-      placeholder="You daily activity"
-    />
-    <multiselect
-      v-model="selectedCalorieGoal"
-      :options="calorieGoals"
-      :multiple="false"
-      label="label"
-      track-by="value"
-      placeholder="You weight goal"
-    />
-    <multiselect
-      v-model="gender"
-      :options="sexOptions"
-      :multiple="false"
-      label="label"
-      track-by="value"
-      placeholder="Gender"
-    />
 
     <div class="button">
       <button class="btn-primary" type="submit" :disabled="isLoading">
@@ -73,8 +89,8 @@ const numberOfMeals = ref(null);
 const selectedIntolerances = ref([]);
 const selectedPreferences = ref([]);
 const medicaments = ref('');
-const selectedLevel = ref('moderate');
-const selectedGoal = ref('maintain');
+const selectedActivityLevel = ref('');
+const selectedCalorieGoal = ref('');
 const age = ref(null);
 const gender = ref(null);
 
@@ -194,7 +210,7 @@ const handleSubmit = async () => {
       intolerances: selectedIntolerances.value.map(pref=>pref.intolerance),
       medicament_usage: medicaments.value,
       age: age.value,
-      gender: gender.value ? gender.value.value : null,
+      gender: gender.value,
       activity_level: selectedActivityLevel.value?.value,
       calorie_goal: selectedCalorieGoal.value?.value,
     };
@@ -225,6 +241,21 @@ const handleSubmit = async () => {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+}
+.form h2{
+  font-size: 1.2rem;
+  color: var(--primary-color);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid #eee;
+}
+.form label{
+  font-weight: 600; 
+  font-size: 0.8rem;
+  color: #333;
+  margin-top: 0.5rem;
+  margin-bottom: -0.5rem;
 }
 .button{
   display: flex;
