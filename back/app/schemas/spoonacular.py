@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict
 
 class Recipe(BaseModel):
     id: int
@@ -9,3 +9,16 @@ class Recipe(BaseModel):
     sourceUrl: Optional[str] = None
     readyInMinutes: Optional[int] = None
     servings: Optional[int] = None
+
+class Nutrients(BaseModel):
+    calories: float
+    protein: float
+    fat: float
+    carbohydrates: float
+
+class DailyPlanResponse(BaseModel):
+    meals: List[Recipe]
+    nutrients: Nutrients
+
+class WeeklyPlanResponse(BaseModel):
+    week: Optional[Dict[str, DailyPlanResponse]] = None

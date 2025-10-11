@@ -60,7 +60,6 @@ const stats = ref([
 const getStats = async () => {
     try{
         const response = await api.get("/api/v1/health-form/me/calories");
-        console.log("API response:", response);
         const targetCalories = response?.data?.target_calories ?? 0;
         stats.value[1].value = targetCalories;
     }catch(error){

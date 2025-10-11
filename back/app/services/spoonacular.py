@@ -2,8 +2,8 @@ import os, httpx, asyncio, logging
 from typing import Dict, Any
 from app.schemas.spoonacular import Recipe
 from app.schemas.health_form import HealthFormCreate
-from app.schemas.preference import PrecefenceResponce
-from app.schemas.intolerances import IntoleranceResponse
+from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse
+from app.services.calculator import CalculatorService
 
 class Spoonacular():
     def __init__(self):
@@ -37,44 +37,54 @@ class Spoonacular():
 
     def _format_diet_params(self, health_form: HealthFormCreate):
         params = {}
-
+        ACCEPTABLE_DIETS = {
+            "gluten free", "ketogenic", "vegetarian", "lacto-vegetarian", 
+            "ovo-vegetarian", "vegan", "pescetarian", "paleo", "primal"
+        }
+        ACCEPTABLE_INTOLERANCES = {
+            "dairy", "egg", "gluten", "grain", "peanut", "seafood", 
+            "sesame", "shellfish", "soy", "sulfite", "tree nut", "wheat"
+        }
         if health_form.diet_preferences:
-            preferences = [
-                "gluten free", "ketogenic", "vegetarian", "lacto-vegetarian", 
-                "ovo-vegetarian", "vegan", "pescetarian", "paleo", "primal"
-                ]
-            user_diet_input = [d.strip().lower() for d in health_form.diet_preferences.split(",")]
-            valid_diet = [d for d in user_diet_input if d in preferences]
-
-            if valid_diet:
-                params["diet"] = ",".join(valid_diet)
-
-        if health_form.intolerances:
-            intolerances = [
-                "dairy", "egg", "gluten", "grain", "peanut", "seafood", 
-                "sesame", "shellfish", "soy", "sulfite", "tree nut", "wheat"
+            valid_diet = [
+                d for d in (p.strip().lower() for p in health_form.diet_preferences) 
+                if d in ACCEPTABLE_DIETS     
             ]
-            user_intolerances_input = [i.strip().lower() for i in health_form.intolerances.split(",")]
-            valid_intolerances = [i for i in user_intolerances_input if i in intolerances]
+            if valid_diet:
+                params['diet'] = ','.join(valid_diet)
+        
+        if health_form.intolerances:
+            valid_intolerance = [
+                i for i in (p.strip().lower() for p in health_form.intolerances) 
+                if i in ACCEPTABLE_INTOLERANCES     
+            ]
+            if valid_intolerance:
+                params['intolerances'] = ','.join(valid_intolerance)
+        
+        calc = CalculatorService()
+        bmr = calc.calculate_bmr(gender = health_form.gender, 
+                                 height=health_form.height,
+                                 weight=health_form.weight,
+                                 age=health_form.age)
+        target_calories = calc.calculate_target_calories(bmr, health_form.activity_level,
+                                                         health_form.calorie_goal)
+        params["targetCalories"] = target_calories
 
-            if valid_intolerances:
-                params["intolerances"] = ",".join(valid_intolerances)
-        if (health_form.height and health_form.weight):
-            target_calories = int((10 * health_form.weight) + int(6.25*health_form.height) - 100)
-            params["targetCalories"] = target_calories
         return params
 
-
-    async def generate_meal_plan(self, health_form: HealthFormCreate, days: int= 1):
+    async def generate_meal_plan(self, health_form: HealthFormCreate, time_frame: str = "day"):
+        if time_frame not in ["day", "week"]:
+            raise ValueError("time_frame must be 'day' or 'week'.")
+        
         params = self._format_diet_params(health_form)
         params.update({
-            "timeFrame": "day" if days == 1 else "week"
+            "timeFrame": time_frame
         })
-        print(self.api_key)
-        print(params)
-        #trzeba jakiegos handlera zaimplemntaować + inicjalizacja tutaj obiektów Meal :))) 
-        data = await self._make_request("mealplanner/generate", params)
-        return data
-        
 
-        
+        data = await self._make_request("mealplanner/generate", params)
+        if time_frame == "day":
+            validated_plan  = DailyPlanResponse(**data)
+            return validated_plan
+        else:
+            validated_plan = WeeklyPlanResponse(**data)
+            return validated_plan
