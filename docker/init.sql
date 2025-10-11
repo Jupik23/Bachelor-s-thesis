@@ -1,5 +1,4 @@
 -- Enums
-
 CREATE TYPE gender_enum AS ENUM (
     'male',
     'female'
@@ -21,7 +20,6 @@ CREATE TYPE calorie_goal_enum AS ENUM (
     'mild_gain',
     'gain'
 );
-
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,

@@ -17,29 +17,6 @@ def get_user_form(db: Session = Depends(get_database),
         raise HTTPException(status_code=404, detail="Health form not found")
     return form.get_health_form(user_id = user.id)
 
-# @router.post("/", response_model= HealthFormResponse)
-# def create_health_form(input: HealthFormCreate, db:Session = Depends(get_database), user_id: int = Depends(get_current_user)):
-#     try:
-#         service = HealthFormService(db)
-#         form = service.create_health_form(input, user_id=user_id)
-#         return form
-#     except Exception as e:
-#         raise HTTPException(status_code = 400, detail=str(e))
-        
-# @router.patch("/", response_model=HealthFormResponse)
-# def update_health_form( input: HealthFormUpdate, 
-#                         db: Session = Depends(get_database),
-#                         current_user: dict = Depends(get_current_user)):
-#     try:
-#         service = HealthFormService(db) 
-#         updated_form = service.update_health_form(current_user["user_id"], 
-#                                    new_input_data= input)
-#         if not updated_form: 
-#             raise HTTPException(status_code=404, detail="Health form not found")       
-#         return updated_form
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=str(e) )
-
 @router.put("/", response_model=HealthFormResponse)
 def upsert_health_form(input: HealthFormCreate, 
                        db: Session = Depends(get_database), 
@@ -61,7 +38,8 @@ def upsert_health_form(input: HealthFormCreate,
 @router.get("/me/calories", response_model=CalorieTargetResponse)
 def count_calories(db: Session = Depends(get_database), user: dict = Depends(get_current_user)):
     health_form = HealthFormService(db)
-    user_health_form = health_form.get_health_form(user=user.id)
+    user_health_form = health_form.get_health_form(user_id=user.id)
+    
 
     if not user_health_form:
         HTTPException(status_code=404,
@@ -69,7 +47,7 @@ def count_calories(db: Session = Depends(get_database), user: dict = Depends(get
                       )
     try:
         calculate = CalculatorService()
-        result = calculate.get_result_for_user(health_form=health_form)
+        result = calculate.get_result_for_user(health_form=user_health_form)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

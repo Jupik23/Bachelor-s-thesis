@@ -89,8 +89,8 @@ const numberOfMeals = ref(null);
 const selectedIntolerances = ref([]);
 const selectedPreferences = ref([]);
 const medicaments = ref('');
-const selectedActivityLevel = ref('');
-const selectedCalorieGoal = ref('');
+const selectedActivityLevel = ref(null);
+const selectedCalorieGoal = ref(null);
 const age = ref(null);
 const gender = ref(null);
 
@@ -134,7 +134,7 @@ const populateForm = (data) => {
   
   medicaments.value = data.medicament_usage || '';
   age.value = data.age;
-  gender.value = data.gender;
+  gender.value = sexOptions.value.find(o=>o.value===data.gender) || null;
   selectedActivityLevel.value = activityLevels.value.find(o => o.value === data.activity_level) || null;
   selectedCalorieGoal.value = calorieGoals.value.find(o => o.value === data.calorie_goal) || null;
   
@@ -171,7 +171,7 @@ onMounted(() => {
   initializeDataFromDB();
 })
 
-//UI variables
+//UI variables need to implement popup's
 const isLoading = ref(false);
 const successMessage = ref("");
 const failureMessage = ref("");
@@ -210,7 +210,7 @@ const handleSubmit = async () => {
       intolerances: selectedIntolerances.value.map(pref=>pref.intolerance),
       medicament_usage: medicaments.value,
       age: age.value,
-      gender: gender.value,
+      gender: gender.value?.value || gender.value,
       activity_level: selectedActivityLevel.value?.value,
       calorie_goal: selectedCalorieGoal.value?.value,
     };

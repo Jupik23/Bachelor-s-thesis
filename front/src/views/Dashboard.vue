@@ -13,9 +13,10 @@
 
 </template>
 <script setup>
-import {ref} from "vue"
+import {onMounted, ref, renderSlot} from "vue"
 import Stats from "@/components/dashboard/Stats.vue";
 import TodayInfo from "@/components/dashboard/TodayInfo.vue";
+import api from "@/lib/api.js"
 const today = new Date().toDateString();
 const cards_data = ref([
     {
@@ -46,8 +47,8 @@ const stats = ref([
         unit: "/3",
     },
     {
-        title: "Remaining Calories",
-        value: 1200,
+        title: "Target Calories",
+        value: 0,
         unit: "kcal",
     },
     {
@@ -56,6 +57,19 @@ const stats = ref([
         unit: "%",
     },
 ])
+const getStats = async () => {
+    try{
+        const response = await api.get("/api/v1/health-form/me/calories");
+        console.log("API response:", response);
+        const targetCalories = response?.data?.target_calories ?? 0;
+        stats.value[1].value = targetCalories;
+    }catch(error){
+        console.log(error)
+    }
+}
+onMounted(() => {
+    getStats()
+})
 </script>
 
 <style scoped>

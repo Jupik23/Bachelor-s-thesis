@@ -4,6 +4,7 @@ from app.models.common import (Gender, ActivityLevel,
                                CALORIE_GOAL_ADJUSTMENTS)
 from app.schemas.health_form import HealthFormCreate, CalorieTargetResponse
 class CalculatorService:
+    @staticmethod
     def calculate_bmr(gender: Gender, height: int, weight: int, age: int):
         if gender == Gender.male:
             bmr = (10 * weight) + (6.25 * height )-(5*age) + 5
@@ -11,10 +12,11 @@ class CalculatorService:
             bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
         return bmr
 
+    @staticmethod
     def calculate_target_calories(
             bmr: float,
             userActivityLevel: ActivityLevel,
-            userGoal = CalorieGoal
+            userGoal: CalorieGoal
             ):
         pal = ACTIVITY_LEVEL_MULTIPLIERS.get(userActivityLevel, 0)
         calories_adjustment = CALORIE_GOAL_ADJUSTMENTS.get(userGoal, 0)
@@ -37,7 +39,7 @@ class CalculatorService:
         target_calories = self.calculate_target_calories(
             bmr=bmr,
             userActivityLevel=health_form.activity_level,
-            userCalorieGoa=health_form.calorie_goal
+            userGoal=health_form.calorie_goal
         )
         return CalorieTargetResponse(
             bmr=bmr,
