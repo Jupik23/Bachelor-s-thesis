@@ -81,7 +81,7 @@ class Spoonacular():
             "timeFrame": time_frame
         })
 
-        data = await self._make_request("mealplanner/generate", params)
+        data = await self._make_request("mealplanner/generate/", params)
         if time_frame == "day":
             validated_plan  = DailyPlanResponse(**data)
             return validated_plan

@@ -17,4 +17,5 @@ class Plan(Base):
     )
 
     meals = relationship("Meal", back_populates="plan", cascade="all, delete-orphan")
+    creator = relationship("User", back)
     # medications = relationship("Medication", back_populates="plan", cascade="all, delete-orphan")

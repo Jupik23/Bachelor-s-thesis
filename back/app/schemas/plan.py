@@ -14,7 +14,7 @@ class MedicationCreate(BaseModel):
 class PlanCreate(BaseModel):
     user_id: int
     meals = List[MealCreate]
-    medications = List[MedicationCreate]
+    medications = Optional[List[MedicationCreate]] = None # need to change in future
     day_start = datetime
 
 class MealResponse(MealCreate):
