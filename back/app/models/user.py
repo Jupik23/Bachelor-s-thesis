@@ -19,3 +19,8 @@ class User(Base):
         cascade="all, delete-orphan",
         foreign_keys="[Plan.user_id]"
     )
+    created_plans = relationship(
+        "Plan",
+        back_populates="creator",
+        foreign_keys="[Plan.created_by]"
+    )

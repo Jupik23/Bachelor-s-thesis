@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS plans (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     day_start DATE NOT NULL
 );
 
@@ -77,6 +79,9 @@ CREATE TABLE IF NOT EXISTS meals (
     meal_type VARCHAR,
     time TIME NOT NULL,
     description VARCHAR,
+    spoonacular_recipe_id INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     eaten BOOLEAN DEFAULT FALSE NOT NULL,
     comment VARCHAR
 );

@@ -1,19 +1,39 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.utils.jwt import get_current_user
-from app.services.spoonacular import Spoonacular
-from app.services.health_form import HealthFormService
-from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse
+from app.services.plan import PlanCreationService
+from app.schemas.plan import PlanResponse
 
 router = APIRouter(prefix="/api/v1/meals",  tags=["meals"])
 
-@router.get("/", response_model=DailyPlanResponse | WeeklyPlanResponse)
+@router.post("/generate", response_model=PlanResponse)
 async def generate_plan(db: Session = Depends(get_database), 
                         user: Session = Depends(get_current_user),
                         range: str = "day"):
-    health_form = HealthFormService(db)
-    user_form = health_form.get_health_form(user_id = user.id)
-    service = Spoonacular()
-    suggested_plan = await service.generate_meal_plan(health_form=user_form, time_frame=range)
-    return suggested_plan
+    if range != "day":
+         raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="In progress..."
+        )
+
+    plan_service = PlanCreationService(db)
+    
+    try:
+        new_plan = await plan_service.generate_and_save_plan(
+            user_id=user.id, 
+            created_by_id=user.id, 
+            time_frame=range
+        )
+        return new_plan
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Error: {e}"
+        )

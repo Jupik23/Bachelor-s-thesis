@@ -6,7 +6,8 @@ from app.schemas.health_form import HealthFormCreate
 from app.schemas.plan import PlanCreate
 from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse
 from app.models.common import MealType
-from app.crud.plan import create_plan
+from app.crud.plans import create_plan
+from app.crud.meals import create_meal
 
 MEAL_MAPPING_3_MEALS = {
     0: (MealType.breakfast, time(8, 0)),
@@ -34,19 +35,38 @@ class PlanCreationService:
             raise ValueError("No user health form")
         
         try:
-            user_health_form_data = HealthFormCreate.model_validate(user_health_form_data)
+            user_health_form_data = HealthFormCreate.model_validate(user_health_form_model.__dict__)
         except Exception as e:
-            raise ValueError("Data from health_form are not correctly: {e}" )
+            raise ValueError(f"Data from health_form are not correctly: {e}" )
         try:
             plan_response: DailyPlanResponse = await self.spoonacular_service.generate_meal_plan(
                 health_form=user_health_form_data,
                 time_frame=time_frame
             )
         except Exception as e:
-            raise Exception("Can't generate plan: {e}")
+            raise Exception(f"Can't generate plan: {e}")
         
         plan_data = PlanCreate(
             user_id = user_id,
             created_by = created_by_id,
             day_start = date.today()
         )
+        new_plan = create_plan(db=self.db, plan_data=plan_data)
+        num_meals = user_health_form_data.number_of_meals_per_day
+        meal_mapping = MEAL_MAPPING_5_MEALS if num_meals > 3 else MEAL_MAPPING_5_MEALS
+
+        for index, meal_data in enumerate(plan_response.meals):
+            if index not in meal_mapping:
+                continue
+
+            meal_type, meal_time = meal_mapping[index]
+
+            create_meal(
+                db=self.db,
+                plan_id = new_plan.id,
+                meal_type=meal_type,
+                time=meal_time,
+                description=f"{meal_data.title}",
+                spoonacular_recipe_id=meal_data.id
+            )
+        return new_plan

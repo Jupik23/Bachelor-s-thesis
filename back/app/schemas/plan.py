@@ -5,24 +5,25 @@ from app.models.common import MealType, WithMealRelation
 
 class MealCreate(BaseModel):
     meal_type: MealType
-    description: Optional[str]
+    description: Optional[str] = None
     time: time
 
 class MedicationCreate(BaseModel):
     pass
 
-class PlanCreate(BaseModel):
-    user_id: int
-    meals = List[MealCreate]
-    medications = Optional[List[MedicationCreate]] = None # need to change in future
-    day_start = datetime
-
 class MealResponse(MealCreate):
     id: int 
     eaten: bool
-    comment: str
+    comment: Optional[str]
     class Config:
         from_attributes = True
+
+class PlanCreate(BaseModel):
+    user_id: int
+    created_by: int
+    #medications: Optional[List[MedicationCreate]] = None # need to change in future
+    day_start: datetime
+    
 
 class MedicationResponse(MedicationCreate):
     class Config:
@@ -30,6 +31,6 @@ class MedicationResponse(MedicationCreate):
     pass
 
 class PlanResponse(PlanCreate):
-    id: int 
+    meals: List[MealResponse]
     class Config:
         from_attributes = True
