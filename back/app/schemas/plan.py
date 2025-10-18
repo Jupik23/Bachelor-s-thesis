@@ -23,7 +23,10 @@ class PlanCreate(BaseModel):
     created_by: int
     #medications: Optional[List[MedicationCreate]] = None # need to change in future
     day_start: datetime
-    
+    total_calories: Optional[float] = None
+    total_protein: Optional[float] = None
+    total_fat: Optional[float] = None
+    total_carbohydrates: Optional[float] = None
 
 class MedicationResponse(MedicationCreate):
     class Config:

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Date, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, Date, ForeignKey, DateTime, Float
 from sqlalchemy.orm import relationship
 from app.database.database import Base
 from datetime import datetime
@@ -12,6 +12,10 @@ class Plan(Base):
     day_start = Column(Date, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False) 
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    total_calories = Column(Float)
+    total_protein = Column(Float)
+    total_fat = Column(Float)
+    total_carbohydrates = Column(Float)
 
     user = relationship(
         "User",

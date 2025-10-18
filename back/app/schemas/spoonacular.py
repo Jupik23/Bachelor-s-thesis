@@ -19,6 +19,10 @@ class Nutrients(BaseModel):
 class DailyPlanResponse(BaseModel):
     meals: List[Recipe]
     nutrients: Nutrients
+    total_calories: Optional[float] = None
+    total_protein: Optional[float] = None
+    total_fat: Optional[float] = None
+    total_carbohydrates: Optional[float] = None
 
 class WeeklyPlanResponse(BaseModel):
     week: Optional[Dict[str, DailyPlanResponse]] = None
