@@ -25,7 +25,7 @@ const routes = [
             forVisitors: true,
         }
     },
-    { path: "/health_form", 
+    { path: "/health-form", 
         name: "healthform", 
         component: () => import("@/views/HealthForm.vue"),
         meta: {
@@ -42,6 +42,10 @@ const routes = [
             forVisitors: true
         }
     },
+    {path: "/meal-plan",
+        name: "mealplan",
+        component: () => import("@/views/MealPlan.vue")
+    }
 ]
 
 const router = createRouter({

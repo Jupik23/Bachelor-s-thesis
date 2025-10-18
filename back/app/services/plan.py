@@ -3,10 +3,10 @@ from datetime import date, time
 from app.services.spoonacular import Spoonacular
 from app.services.health_form import HealthFormService
 from app.schemas.health_form import HealthFormCreate
-from app.schemas.plan import PlanCreate
+from app.schemas.plan import PlanCreate, PlanResponse
 from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse
 from app.models.common import MealType
-from app.crud.plans import create_plan
+from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date
 from app.crud.meals import create_meal
 
 MEAL_MAPPING_3_MEALS = {
@@ -70,3 +70,19 @@ class PlanCreationService:
                 spoonacular_recipe_id=meal_data.id
             )
         return new_plan
+    
+    def get_todays_plan_for_user(self, user_id: int):
+        user_plan = get_plan_with_meals_by_user_id_and_date(
+            db=self.db,
+            user_id=user_id,
+            plan_date=date.today()
+        )
+        if not user_plan:
+            return PlanResponse(
+                id=0,
+                user_id=user_id,
+                created_by=user_id,
+                day_start=date.today(),
+                meals=[]
+            )
+        return PlanResponse.model_validate(user_plan)

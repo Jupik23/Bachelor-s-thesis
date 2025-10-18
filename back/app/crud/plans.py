@@ -1,9 +1,7 @@
 from app.models.plan import Plan
 from app.schemas.plan import PlanCreate
-from app.models.meal import Meal
-from app.models.common import MealType
-from datetime import time
-from sqlalchemy.orm import Session
+from datetime import date
+from sqlalchemy.orm import Session, joinedload
 
 def create_plan(db: Session, plan_data: PlanCreate):
     new_plan = Plan(**plan_data.dict())
@@ -12,17 +10,11 @@ def create_plan(db: Session, plan_data: PlanCreate):
     db.refresh(new_plan)
     return new_plan
 
-def create_meal(db: Session, plan_id: int, meal_type: MealType, time: time, description: str, spoonacular_recipe_id: int = None):
-    db_meal = Meal(
-        plan_id=plan_id,
-        meal_type=meal_type,
-        time=time,
-        description=description,
-        eaten=False, 
-        comment=None,
-        spoonacular_recipe_id=spoonacular_recipe_id 
+def get_plan_with_meals_by_user_id_and_date(db: Session, user_id: int, plan_date: date = date.today()):
+    return (
+        db.query(Plan).options(joinedload(Plan.meals))
+        .filter(Plan.user_id == user_id)
+        .filter(Plan.day_start == plan_date)
+        .order_by(Plan.created_at.desc())
+        .first()
     )
-    db.add(db_meal)
-    db.commit()
-    db.refresh(db_meal)
-    return db_meal
