@@ -70,6 +70,10 @@ CREATE TABLE IF NOT EXISTS plans (
     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_calories FLOAT,
+    total_protein FLOAT,
+    total_fat FLOAT,
+    total_carbohydrates FLOAT,
     day_start DATE NOT NULL
 );
 

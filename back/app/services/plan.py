@@ -50,10 +50,10 @@ class PlanCreationService:
             user_id = user_id,
             created_by = created_by_id,
             day_start = date.today(),
-            total_calories = plan_response.total_calories,
-            total_protein = plan_response.total_protein,
-            total_fat = plan_response.total_fat,
-            total_carbohydrates = plan_response.total_carbohydrates,
+            total_calories = plan_response.nutrients.calories,
+            total_protein = plan_response.nutrients.protein,
+            total_fat = plan_response.nutrients.fat,
+            total_carbohydrates = plan_response.nutrients.carbohydrates,
         )
         new_plan = create_plan(db=self.db, plan_data=plan_data)
         num_meals = user_health_form_data.number_of_meals_per_day

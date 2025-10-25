@@ -29,4 +29,4 @@ class Plan(Base):
         back_populates="created_plans", 
         foreign_keys=[created_by] 
     )
-    # medications = relationship("Medication", back_populates="plan", cascade="all, delete-orphan")
+    medications = relationship("Medication", back_populates="plan", cascade="all, delete-orphan")
