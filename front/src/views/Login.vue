@@ -1,9 +1,8 @@
 <template>
     <section class="section">
       <div class="container">
-        <div class="auth-card">
+        <Card title="Login to your account">
           <form class="stack-4" @submit.prevent="onLoginViaJson">
-            <h1>Sign in</h1>
             <input v-model="login.email" type="text" placeholder="Email" required>
             <input v-model="login.password" type="password" placeholder="Password" required>
             <button class="btn" type="submit" :disabled="loading">
@@ -18,7 +17,7 @@
               <RouterLink to="/register">Create one</RouterLink>
             </p>
           </form>
-        </div>
+        </Card>
       </div>
     </section>
 </template>
@@ -27,6 +26,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { setAuthToken } from '../lib/api.js'
+import Card from '@/components/Card.vue'
 import { userAuthStore } from '@/lib/auth'
 const router = useRouter()
 const login = ref({email: '', password: ''})
@@ -88,21 +88,10 @@ async function handleOAuthCallback() {
 }
 </script>
 <style scoped>
-.section{
-  min-height: 100vh;
-  width: 100%;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 .container{
-}
-.btn{
-
-}
-.auth-card{
-  padding: 30px;
+  height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center; 
 }
 </style>

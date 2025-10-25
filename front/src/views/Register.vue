@@ -1,7 +1,7 @@
 <template>
   <section class="section">
     <div class="container">
-      <div class="card auth-card">
+      <Card title="Create Account!">
         <form class="stack-4" @submit.prevent="onRegister">
           <h1>Create account</h1>
           <input v-model="reg.name" type="text" placeholder="Name" 
@@ -22,7 +22,7 @@
             <RouterLink to="/login">Sign in</RouterLink>
           </p>
         </form>
-      </div>
+      </Card>
     </div>
   </section>
 </template>
@@ -30,6 +30,7 @@
 <script setup>
 import { ref } from 'vue'
 import api from "../lib/api.js"
+import Card from '@/components/Card.vue'
 import { useRouter } from 'vue-router'
 
 const reg = ref({ name:'', surname:'', username:'', email:'', password:'' })
@@ -77,3 +78,12 @@ async function onRegister() {
   }
 };
 </script>
+<style scoped>
+.container{
+  height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center; 
+}
+
+</style>
