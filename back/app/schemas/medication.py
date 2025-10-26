@@ -1,4 +1,4 @@
-from pydantinc import BaseModel
+from pydantic import BaseModel
 from typing import Optional, List
 from datetime import time
 from app.models.common import WithMealRelation
