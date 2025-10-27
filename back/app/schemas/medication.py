@@ -18,10 +18,17 @@ class MedicationResponse(MedicationCreate):
 
 class DrugInteractionResponse(BaseModel):
     medication_1: str
-    medication2: str
+    medication_2: str
     severity: str
     description: str
 
 class MedicationListResponse(BaseModel):
     medications: List[MedicationResponse]
     interactions: Optional[List[DrugInteractionResponse]] = None
+
+class DrugValidationRequest(BaseModel):
+    drug_name: str
+
+class DrugValidationResponse(DrugValidationRequest):
+    is_valid: bool = False
+    rxnorm_id: Optional[str] = None

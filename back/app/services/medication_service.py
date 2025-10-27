@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 from app.schemas.medication import (MedicationCreate, 
                                     DrugInteractionResponse, MedicationResponse,
-                                    MedicationListResponse)
+                                    MedicationListResponse, DrugValidationResponse)
 from app.crud.medication import create_medication, get_medications_by_plan_id
 from app.database.database import get_database
 from typing import List, Dict, Any, Optional
@@ -113,3 +113,20 @@ class MedicationService:
             medications=saved_medications, 
             interactions=interactions
         )
+    
+    async def validate_drug(self, drug_name):
+        try:
+            rx_id = await self.interaction_checker.get_rxnorm_id(drug_name)
+            is_valid  = rx_id is not None
+            return DrugValidationResponse(
+                drug_name=drug_name,
+                is_valid=is_valid,
+                rxnorm_id=rx_id
+            )
+        except Exception as e:
+            logging.error(f"Drug validation failed due to API error: {e}")
+            return DrugValidationResponse(
+                drug_name=drug_name,
+                is_valid=False,
+                rxnorm_id=None
+            )

@@ -17,4 +17,4 @@ def create_medication(db: Session, plan_id: int, medication_data: MedicationCrea
     return new_med
 
 def get_medications_by_plan_id(db: Session, plan_id: int):
-    return db.query(Medication).filter(Medication.plan_id == plan_id)
+    return db.query(Medication).filter(Medication.plan_id == plan_id).all()
