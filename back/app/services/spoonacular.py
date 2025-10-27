@@ -1,8 +1,7 @@
 import os, httpx, asyncio, logging
 from typing import Dict, Any
-from app.schemas.spoonacular import Recipe
 from app.schemas.health_form import HealthFormCreate
-from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse
+from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse, Recipe, ComplexSearchResponse, RecipeInformation
 from app.services.calculator import CalculatorService
 
 class Spoonacular():
@@ -88,3 +87,35 @@ class Spoonacular():
         else:
             validated_plan = WeeklyPlanResponse(**data)
             return validated_plan
+        
+    async def search_recipies(self, query: str, 
+                              health_form: HealthFormCreate, 
+                              number: int = 10
+    ):
+        endpoint = "recipies/complexSearch"
+        diet_params = self._format_diet_params(health_form)
+        params = {
+            "query": query,
+            "number": number,
+            "addRecipeInformation": False
+        }
+        params.update(diet_params)
+        params.pop('targetCalories', None) 
+
+        data = await self._make_request(endpoint, params=params)
+        
+        if data:
+            return ComplexSearchResponse.model_validate(data)
+        else:
+            return ComplexSearchResponse(results=[], offset=0, number=0, totalResults=0)
+        
+    async def get_recipe_information(self, recipe_id: int):
+        endpoint = f"recipes/{recipe_id}/information"
+        params = {"includeNutrition": False} 
+        
+        data = await self._make_request(endpoint, params=params)
+        
+        if data:
+            return RecipeInformation.model_validate(data)
+        else:
+            return None

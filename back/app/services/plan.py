@@ -5,6 +5,7 @@ from app.services.health_form import HealthFormService
 from app.schemas.health_form import HealthFormCreate
 from app.schemas.plan import PlanCreate, PlanResponse
 from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse
+from app.schemas.plan import ManualMealAddRequest, MealResponse
 from app.models.common import MealType
 from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date
 from app.crud.meals import create_meal
@@ -87,6 +88,37 @@ class PlanCreationService:
                 user_id=user_id,
                 created_by=user_id,
                 day_start=date.today(),
-                meals=[]
+                meals=[],
+                total_calories=0,
+                total_protein=0,
+                total_fat=0,
+                total_carbohydrates=0,
+                medications=[]
             )
         return PlanResponse.model_validate(user_plan)
+    
+    async def add_meal_manually(self, plan_id: int, meal_request: ManualMealAddRequest) -> MealResponse:
+        plan = get_plan_with_meals_by_user_id_and_date(self.db, plan_id)
+        if not plan:
+            raise ValueError(f"Plan o ID {plan_id} nie został znaleziony.")
+        
+        recipe_info = await self.spoonacular_service.get_recipe_information(
+            meal_request.spoonacular_recipe_id
+        )
+        if not recipe_info:
+             raise ValueError(f"Nie znaleziono przepisu o ID {meal_request.spoonacular_recipe_id}.")
+
+        description = f"{recipe_info.title}" 
+        if recipe_info.readyInMinutes:
+            description += f" (Ready in {recipe_info.readyInMinutes} min)"
+
+        new_meal_orm = create_meal(
+            db=self.db,
+            plan_id=plan_id,
+            meal_type=meal_request.meal_type,
+            time=meal_request.time,
+            description=description,
+            spoonacular_recipe_id=meal_request.spoonacular_recipe_id
+        )
+
+        return MealResponse.model_validate(new_meal_orm)
