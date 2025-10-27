@@ -15,6 +15,11 @@ class MealResponse(MealCreate):
     class Config:
         from_attributes = True
 
+class ManualMealAddRequest(BaseModel):
+    spoonacular_recipe_id: int
+    meal_type: MealType 
+    time: time 
+
 class PlanCreate(BaseModel):
     user_id: int
     created_by: int

@@ -12,7 +12,8 @@ def create_plan(db: Session, plan_data: PlanCreate):
 
 def get_plan_with_meals_by_user_id_and_date(db: Session, user_id: int, plan_date: date = date.today()):
     return (
-        db.query(Plan).options(joinedload(Plan.meals))
+        db.query(Plan).options(joinedload(Plan.meals),
+                               joinedload(Plan.medications))
         .filter(Plan.user_id == user_id)
         .filter(Plan.day_start == plan_date)
         .order_by(Plan.created_at.desc())

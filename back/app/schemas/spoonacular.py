@@ -4,12 +4,23 @@ from typing import Optional, List, Dict
 class Recipe(BaseModel):
     id: int
     title: str
-    summary: Optional[str] = None
     image: Optional[str] = None
-    sourceUrl: Optional[str] = None
+    imageType: Optional[str] = None
+
+class ComplexSearchResponse(BaseModel):
+    results: List[Recipe]
+    offset: int
+    number: int
+    totalResults: int
+
+class RecipeInformation(BaseModel):
+    id: int
+    title: str
     readyInMinutes: Optional[int] = None
     servings: Optional[int] = None
-
+    sourceUrl: Optional[str] = None
+    image: Optional[str] = None
+    
 class Nutrients(BaseModel):
     calories: float
     protein: float

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.utils.jwt import get_current_user
 from app.services.plan import PlanCreationService
-from app.schemas.plan import PlanResponse
+from app.schemas.plan import PlanResponse, MealResponse, ManualMealAddRequest
 from typing import Optional
 
 router = APIRouter(prefix="/api/v1/meals",  tags=["meals"])
@@ -53,3 +53,24 @@ def get_todays_plan(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error while geting plan: {e}"
             )
+    
+@router.post(
+    "/{plan_id}/meals", 
+    response_model=MealResponse, 
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_meal_to_plan_manually(
+    plan_id: int,
+    meal_data: ManualMealAddRequest,
+    db: Session = Depends(get_database),
+    current_user: dict = Depends(get_current_user) 
+):
+    plan_service = PlanCreationService(db)
+    
+    try:
+        new_meal = await plan_service.add_meal_manually(plan_id, meal_data)
+        return new_meal
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Błąd dodawania posiłku: {e}")
