@@ -64,7 +64,14 @@
       placeholder="Select intolerances"
     />
     <label for="medicaments-taken">Medicaments</label>
-    <input v-model="medicaments" placeholder="Medicaments taken" />
+    <multiselect
+      v-model="medicaments"
+      :options="[]"
+      :multiple="true"
+      :taggable="true"
+      @tag="addTag"
+      placeholder="Type medication names (press Enter after each)"
+    />
 
     <div class="button">
       <button class="btn-primary" type="submit" :disabled="isLoading">
@@ -88,7 +95,7 @@ const height = ref(null);
 const numberOfMeals = ref(null);
 const selectedIntolerances = ref([]);
 const selectedPreferences = ref([]);
-const medicaments = ref('');
+const medicaments = ref([]);
 const selectedActivityLevel = ref(null);
 const selectedCalorieGoal = ref(null);
 const age = ref(null);
@@ -115,6 +122,29 @@ const sexOptions = ref([
     { label: "Female", value: "female" },
 ]);
 
+const addTag = async (newTag) => {
+  const normalizedTag = newTag.trim().toLowerCase();
+  if (!normalizedTag || medicaments.value.includes(normalizedTag)){
+    failureMessage.value = "Drug name cannot be empty or duplicated!"
+    return;
+  }
+  isLoading.value = true;
+  failureMessage.value = "";
+  try{
+    const validationResponse = await api.post("api/v1/plans/validate", {drug_name: newTag});
+    if (validationResponse.data.is_valid){
+      medicaments.value.push(newTag)
+      successMessage.value = "Medication validated and added"
+    }else{
+      failureMessage.value = "Medication could not be validated and added"
+    }
+  }catch (error) {
+        failureMessage.value = `Validation failed: ${error.response?.data?.detail || 'Server error'}`;
+    } finally {
+        isLoading.value = false;
+    }
+};
+
 //preferences, intolerances from spoonacular docs
 const preferences = ref([])
 const intolerances = ref([]);
@@ -132,7 +162,7 @@ const populateForm = (data) => {
     data.diet_preferences?.includes(p.preference)
   )
   
-  medicaments.value = data.medicament_usage || '';
+  medicaments.value = Array.isArray(data.medicament_usage) ? data.medicament_usage : (data.medicament_usage ? [data.medicament_usage] : []);
   age.value = data.age;
   gender.value = sexOptions.value.find(o=>o.value===data.gender) || null;
   selectedActivityLevel.value = activityLevels.value.find(o => o.value === data.activity_level) || null;
@@ -208,7 +238,7 @@ const handleSubmit = async () => {
       number_of_meals_per_day: numberOfMeals.value,
       diet_preferences: selectedPreferences.value.map(pref=>pref.preference),
       intolerances: selectedIntolerances.value.map(pref=>pref.intolerance),
-      medicament_usage: medicaments.value,
+      medicament_usage: medicaments.value.join(', ') || '',
       age: age.value,
       gender: gender.value?.value || gender.value,
       activity_level: selectedActivityLevel.value?.value,
