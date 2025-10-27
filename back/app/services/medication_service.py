@@ -98,7 +98,7 @@ class MedicationService:
                                         medication_data=med_data,
                                         rxnorm_id = rx_id)
             saved_medications.append(MedicationResponse.model_validate(db_med))
-            medication_names.appned(med_data.name)
+            medication_names.append(med_data.name)
             if rx_id:
                 rxnorm_ids.append(rx_id)
 

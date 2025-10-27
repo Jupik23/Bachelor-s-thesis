@@ -23,5 +23,5 @@ class DrugInteractionResponse(BaseModel):
     description: str
 
 class MedicationListResponse(BaseModel):
-    mediactions: List[MedicationResponse]
+    medications: List[MedicationResponse]
     interactions: Optional[List[DrugInteractionResponse]] = None
