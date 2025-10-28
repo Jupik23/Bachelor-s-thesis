@@ -161,8 +161,9 @@ const populateForm = (data) => {
   selectedPreferences.value = preferences.value.filter(p=> 
     data.diet_preferences?.includes(p.preference)
   )
-  
-  medicaments.value = Array.isArray(data.medicament_usage) ? data.medicament_usage : (data.medicament_usage ? [data.medicament_usage] : []);
+  medicaments.value = data.medicament_usage.split(',')
+                                            .map(med => med.trim())
+                                            .filter(med => med.length > 0);
   age.value = data.age;
   gender.value = sexOptions.value.find(o=>o.value===data.gender) || null;
   selectedActivityLevel.value = activityLevels.value.find(o => o.value === data.activity_level) || null;
