@@ -26,12 +26,36 @@
                 </ul>
                 <p v-if="!planData.meals.length" class="no-data">No meals found for today.</p>
             </Card>
+            <Card title="Medications (from Health Form)">
+                <ul v-if="medicationNamesFromHealthForm.length" class="item-list simple-list">
+                    <li v-for="(medName, index) in medicationNamesFromHealthForm" :key="index" class="list-item simple-item">
+                        <span>{{ medName }}</span>
+                        </li>
+                </ul>
+                <p v-else class="no-data">No medications listed in your Health Form.</p>
+                <RouterLink to="/health_form" class="btn-secondary">Edit Medications in Health Form</RouterLink>
+            </Card>
+
+            <Card title="Interaction Alerts">
+                <ul v-if="interactionAlerts.length" class="item-list alert-list">
+                     <li v-for="(alert, index) in interactionAlerts" :key="index" :class="['list-item alert-item', alert.severity.toLowerCase()]">
+                        <div class="item-details">
+                            <strong class="item-type alert-severity">{{ alert.severity }}</strong>
+                             <p class="item-desc">
+                                 <strong>{{ alert.medication_1 }} & {{ alert.medication_2 }}:</strong>
+                                 {{ alert.description }}
+                             </p>
+                        </div>
+                     </li>
+                 </ul>
+                <p v-else class="no-data alert-success">No significant drug interactions detected based on your Health Form.</p>
+            </Card>
         </div>
     </div>
 </template> 
 
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, renderSlot } from 'vue';
 import Card from '@/components/Card.vue';
 import api from '@/lib/api';
 
@@ -39,6 +63,7 @@ const today = new Date().toDateString();
 const isLoading = ref(false)
 const error = ref(false)
 const planData =  ref(null)
+const medicationNamesFromHealthForm = ref([]);
 
 const formatTime = (inputTime) => {
     if (!inputTime) return ''
@@ -52,10 +77,12 @@ const formatTime = (inputTime) => {
 
 const sortedMeals = computed(() => {
     if (!planData.value || !planData.value.meals) return []
-    return [...planData.value.meals].sort((a,b)=> {
-        return a.time.localeCompare(b.time)
-    });
+    return [...planData.value.meals].sort((a, b) => a.time.localeCompare(b.time));
 });
+
+const interactionAlerts = computed(() => {
+    return planData.value?.interactions || []; 
+})
 
 const generatePlan = async() => {
     isLoading.value = true
@@ -70,21 +97,35 @@ const generatePlan = async() => {
     }
 }
 
-const getPlan = async() => {
-        isLoading.value = true
-    try{
-        const respose = await api.get("api/v1/meals/today")
-        planData.value = respose.data;
-    }catch (e){
-        console.log("Error: ", e)
-        error.value = e.response?.data?.detail || "Could not load meal plan"
-    }finally{
+const loadInitialData = async () => {
+    isLoading.value = true;
+    error.value = null;
+    planData.value = null; 
+    medicationNamesFromHealthForm.value = [];
+    try {
+        const [planResponse, healthFormResponse] = await Promise.all([
+            api.get("api/v1/meals/today"),
+            api.get("api/v1/health-form/me")
+        ]);
+        planData.value = planResponse.data;
+        if (healthFormResponse.data && healthFormResponse.data.medicament_usage) {
+            const medString = healthFormResponse.data.medicament_usage;
+            if (typeof medString === 'string') {
+                medicationNamesFromHealthForm.value = medString.split(',')
+                    .map(med => med.trim())
+                    .filter(med => med.length > 0);
+            }
+        }
+    } catch (e) {
+        console.error("Error loading initial data: ", e);
+        error.value = e.response?.data?.detail || "Could not load initial data.";
+    } finally {
         isLoading.value = false;
     }
-}
+};
 
 onMounted(() => {
-    getPlan()
+    loadInitialData();
 })
 </script>
 
