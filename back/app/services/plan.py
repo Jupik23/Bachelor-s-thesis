@@ -7,7 +7,8 @@ from app.schemas.plan import PlanCreate, PlanResponse
 from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse
 from app.schemas.plan import ManualMealAddRequest, MealResponse
 from app.models.common import MealType
-from app.services.medication_service import DrugInteractionService, DrugInteractionResponse
+from app.services.medication_service import DrugInteractionService, DrugInteractionResponse, MedicationResponse
+from app.crud.medication import get_medications_by_plan_id
 from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date
 from app.crud.meals import create_meal
 import logging
@@ -137,6 +138,7 @@ class PlanCreationService:
                 interactions=interactions
             )
         else:
+            db_medications = get_medications_by_plan_id(self.db, user_plan.id)
             return PlanResponse(
                 id=user_plan.id,
                 user_id=user_plan.user_id,
@@ -147,7 +149,7 @@ class PlanCreationService:
                 total_protein=user_plan.total_protein,
                 total_fat=user_plan.total_fat,
                 total_carbohydrates=user_plan.total_carbohydrates,
-                medications=[], 
+                medications=[MedicationResponse.model_validate(med) for med in db_medications],
                 interactions=interactions
             )
 
