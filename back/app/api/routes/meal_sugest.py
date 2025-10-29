@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.utils.jwt import get_current_user
 from app.services.plan import PlanCreationService
-from app.schemas.plan import PlanResponse, MealResponse, ManualMealAddRequest
+from app.schemas.plan import PlanResponse, MealResponse, ManualMealAddRequest, MealStatusUpdate
+from app.crud.meals import *
 from typing import Optional
 
 router = APIRouter(prefix="/api/v1/meals",  tags=["meals"])
@@ -74,3 +75,26 @@ async def add_meal_to_plan_manually(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Błąd dodawania posiłku: {e}")
+    
+@router.patch("/{meal_id}", response_model=MealResponse)
+async def meal_status_update(meal_id: int, updated_data: MealStatusUpdate,  
+                             currtent_user: dict = Depends(get_current_user), 
+                             db: Session = Depends(get_database)):
+    db_meal = get_meal_by_id(db, meal_id)
+    
+    if not db_meal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Meal with id {meal_id} not found"
+        )
+    if db_meal.plan.user_id != currtent_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to update this meal"
+        )
+    updated_meal = change_meal_status(
+        db=db, 
+        meal_id=meal_id, 
+        updated_data=updated_data
+    )
+    return updated_meal

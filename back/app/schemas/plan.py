@@ -15,6 +15,9 @@ class MealResponse(MealCreate):
     class Config:
         from_attributes = True
 
+class MealStatusUpdate(BaseModel):
+    eaten: bool
+    comment: Optional[str] = None
 class ManualMealAddRequest(BaseModel):
     spoonacular_recipe_id: int
     meal_type: MealType 

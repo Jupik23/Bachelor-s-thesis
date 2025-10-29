@@ -16,6 +16,9 @@ class MedicationResponse(MedicationCreate):
     class Config:
         from_attributes = True
 
+class MedicationStatusUpdate(BaseModel):
+    taken: bool
+
 class DrugInteractionResponse(BaseModel):
     medication_1: str
     medication_2: str
