@@ -42,9 +42,9 @@ const routes = [
             forVisitors: true
         }
     },
-    {path: "/meal-plan",
+    {path: "/todays-plan",
         name: "mealplan",
-        component: () => import("@/views/MealPlan.vue")
+        component: () => import("@/views/Plan.vue")
     }
 ]
 

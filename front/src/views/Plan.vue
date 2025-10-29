@@ -22,14 +22,43 @@
                         <strong :class="['meal-type', meal.meal_type]">{{ meal.meal_type.toUpperCase() }}</strong>
                         <p class="meal-desc">{{ meal.description.split('.')[0] }}</p>
                     </div>
+                    <div class="meal-actions">
+                            <input 
+                                type="text" 
+                                class="meal-comment"
+                                v-model="meal.comment"
+                                placeholder="Add comment..."
+                                @blur="updateMealStatus(meal)" 
+                            />
+                            <div class="checkbox-wrapper">
+                                <input 
+                                    type="checkbox" 
+                                    :id="'meal-' + meal.id"
+                                    v-model="meal.eaten"
+                                    @change="updateMealStatus(meal)"
+                                />
+                                <label :for="'meal-' + meal.id">
+                                    {{ meal.eaten ? 'Eaten' : 'Mark as eaten' }}
+                                </label>
+                            </div>
+                        </div>
                     </li>
                 </ul>
                 <p v-if="!planData.meals.length" class="no-data">No meals found for today.</p>
             </Card>
-            <Card title="Medications (from Health Form)">
+            <Card title="Medications">
                 <ul v-if="medicationNamesFromHealthForm.length" class="item-list simple-list">
                     <li v-for="(medName, index) in medicationNamesFromHealthForm" :key="index" class="list-item simple-item">
                         <span>{{ medName }}</span>
+                        <div class="checkbox-wrapper">
+                                <input 
+                                    type="checkbox" 
+                                    :id="'med-' + med.id"
+                                    v-model="med.taken"
+                                    @change="updateMedicationStatus(med)"
+                                />
+                                <label :for="'med-' + med.id">{{ med.taken ? 'Taken' : 'Mark as taken' }}</label>
+                            </div>
                         </li>
                 </ul>
                 <p v-else class="no-data">No medications listed in your Health Form.</p>
@@ -123,6 +152,37 @@ const loadInitialData = async () => {
         isLoading.value = false;
     }
 };
+
+async function updateMealStatus(meal) {
+    error.value = null; 
+    const payload = {
+        eaten: meal.eaten,
+        comment: meal.comment || null 
+    };
+
+    try {
+        const response = await api.patch(`/api/v1/meals/${meal.id}`, payload);
+        meal.comment = response.data.comment;
+        meal.eaten = response.data.eaten;
+    } catch (e) {
+        console.error("Failed to update meal status:", e);
+        error.value = "Failed to update meal. Please try again.";
+        meal.eaten = !meal.eaten;
+    }
+}
+async function updateMedicationStatus(medication) {
+    error.value = null;
+    const payload = {
+        taken: medication.taken
+    };
+    try {
+        await api.patch(`/api/v1/medications/${medication.id}`, payload);
+    } catch (e) {
+        console.error("Failed to update medication status:", e);
+        error.value = "Failed to update medication. Please try again.";
+        medication.taken = !medication.taken;
+    }
+}
 
 onMounted(() => {
     loadInitialData();
