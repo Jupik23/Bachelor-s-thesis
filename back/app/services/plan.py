@@ -7,8 +7,14 @@ from app.schemas.plan import PlanCreate, PlanResponse
 from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse
 from app.schemas.plan import ManualMealAddRequest, MealResponse
 from app.models.common import MealType
+from app.services.medication_service import DrugInteractionService, DrugInteractionResponse
 from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date
 from app.crud.meals import create_meal
+import logging
+from typing import List
+from fastapi import HTTPException,status
+import os
+import asyncio
 
 MEAL_MAPPING_3_MEALS = {
     0: (MealType.breakfast, time(8, 0)),
@@ -27,6 +33,8 @@ class PlanCreationService:
     def __init__(self, db: Session):
         self.db = db
         self.spoonacular_service = Spoonacular()
+        fda_key = os.getenv("OPEN_FDA_API_KEY")
+        self.interaction_checker = DrugInteractionService(fda_api_key=fda_key)
         self.health_form_service = HealthFormService(db)
 
     async def generate_and_save_plan(self, created_by_id, user_id, time_frame: str = "day"):
@@ -44,10 +52,9 @@ class PlanCreationService:
                 health_form=user_health_form_data,
                 time_frame=time_frame
             )
-        except Exception as e:
-            raise Exception(f"Can't generate plan: {e}")
-        
-        plan_data = PlanCreate(
+            if plan_response is None or not hasattr(plan_response, 'meals'):
+                 raise ValueError("Received invalid plan data from Spoonacular.")
+            plan_data = PlanCreate(
             user_id = user_id,
             created_by = created_by_id,
             day_start = date.today(),
@@ -55,33 +62,66 @@ class PlanCreationService:
             total_protein = plan_response.nutrients.protein,
             total_fat = plan_response.nutrients.fat,
             total_carbohydrates = plan_response.nutrients.carbohydrates,
-        )
-        new_plan = create_plan(db=self.db, plan_data=plan_data)
-        num_meals = user_health_form_data.number_of_meals_per_day
-        meal_mapping = MEAL_MAPPING_5_MEALS if num_meals > 3 else MEAL_MAPPING_5_MEALS
-
-        for index, meal_data in enumerate(plan_response.meals):
-            if index not in meal_mapping:
-                continue
-
-            meal_type, meal_time = meal_mapping[index]
-
-            create_meal(
-                db=self.db,
-                plan_id = new_plan.id,
-                meal_type=meal_type,
-                time=meal_time,
-                description=f"{meal_data.title}",
-                spoonacular_recipe_id=meal_data.id
             )
-        return new_plan
+            new_plan = create_plan(db=self.db, plan_data=plan_data)
+            num_meals = user_health_form_data.number_of_meals_per_day
+            meal_mapping = MEAL_MAPPING_5_MEALS if num_meals > 3 else MEAL_MAPPING_5_MEALS
+
+            for index, meal_data in enumerate(plan_response.meals):
+                if index not in meal_mapping:
+                    continue
+
+                meal_type, meal_time = meal_mapping[index]
+
+                create_meal(
+                    db=self.db,
+                    plan_id = new_plan.id,
+                    meal_type=meal_type,
+                    time=meal_time,
+                    description=f"{meal_data.title}",
+                    spoonacular_recipe_id=meal_data.id
+                )
+            return new_plan
+        except ValueError as ve: 
+             logging.error(f"Spoonacular API or validation error: {ve}")
+             raise HTTPException(
+                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                 detail=f"Spoonacular service error: {ve}"
+             )
+        except Exception as e: 
+            logging.exception("Unexpected error during plan generation:") 
+            raise HTTPException(
+                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                 detail=f"An unexpected error occurred during plan generation: {e}"
+             )
     
-    def get_todays_plan_for_user(self, user_id: int):
+    async def get_todays_plan_for_user(self, user_id: int):
         user_plan = get_plan_with_meals_by_user_id_and_date(
             db=self.db,
             user_id=user_id,
             plan_date=date.today()
         )
+        health_form_model = self.health_form_service.get_health_form(user_id=user_id)
+        interactions: List[DrugInteractionResponse] = []
+        medication_names_from_form: List[str] = []
+
+        if health_form_model and health_form_model.medicament_usage:
+            try:
+                med_string = health_form_model.medicament_usage
+                if isinstance(med_string, str):
+                     medication_names_from_form = [name.strip() for name in med_string.split(',') if name.strip()]
+                elif isinstance(med_string, list):
+                     medication_names_from_form = [str(name).strip() for name in med_string if str(name).strip()]
+            except Exception as e:
+                logging.error(f"Error parsing medicament_usage from HealthForm: {e}")
+
+        if medication_names_from_form:
+            tasks = [self.interaction_checker.get_rxnorm_id(name) for name in medication_names_from_form]
+            rxnorm_ids_results = await asyncio.gather(*tasks)
+            rxnorm_ids = [rx_id for rx_id in rxnorm_ids_results if rx_id]
+            if rxnorm_ids:
+                interactions = await self.interaction_checker.check_drug_interaction(rxnorm_ids)
+
         if not user_plan:
             return PlanResponse(
                 id=0,
@@ -93,9 +133,24 @@ class PlanCreationService:
                 total_protein=0,
                 total_fat=0,
                 total_carbohydrates=0,
-                medications=[]
+                medications=[], 
+                interactions=interactions
             )
-        return PlanResponse.model_validate(user_plan)
+        else:
+            return PlanResponse(
+                id=user_plan.id,
+                user_id=user_plan.user_id,
+                created_by=user_plan.created_by,
+                day_start=user_plan.day_start,
+                meals=[MealResponse.model_validate(meal) for meal in user_plan.meals],
+                total_calories=user_plan.total_calories,
+                total_protein=user_plan.total_protein,
+                total_fat=user_plan.total_fat,
+                total_carbohydrates=user_plan.total_carbohydrates,
+                medications=[], 
+                interactions=interactions
+            )
+
     
     async def add_meal_manually(self, plan_id: int, meal_request: ManualMealAddRequest) -> MealResponse:
         plan = get_plan_with_meals_by_user_id_and_date(self.db, plan_id)

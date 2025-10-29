@@ -80,13 +80,19 @@ class Spoonacular():
             "timeFrame": time_frame
         })
 
-        data = await self._make_request("mealplanner/generate/", params)
-        if time_frame == "day":
-            validated_plan  = DailyPlanResponse(**data)
-            return validated_plan
-        else:
-            validated_plan = WeeklyPlanResponse(**data)
-            return validated_plan
+        data = await self._make_request("mealplanner/generate/", params=params)
+        if data is None:
+            raise ValueError("Failed to retrieve data from Spoonacular API. Check API limits or connection.")
+        try:
+            if time_frame == "day":
+                validated_plan  = DailyPlanResponse(**data)
+                return validated_plan
+            else:
+                validated_plan = WeeklyPlanResponse(**data)
+                return validated_plan
+        except Exception as e:
+            logging.error(f"Pydantic validation error for Spoonacular response: {e}")
+            raise ValueError(f"Invalid response structure from Spoonacular API: {e}")
         
     async def search_recipies(self, query: str, 
                               health_form: HealthFormCreate, 

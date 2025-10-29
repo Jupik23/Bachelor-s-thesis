@@ -40,13 +40,13 @@ async def generate_plan(db: Session = Depends(get_database),
         )
     
 @router.get('/today', response_model=PlanResponse) 
-def get_todays_plan(
+async def get_todays_plan(
     db:Session = Depends(get_database),
     user: Session = Depends(get_current_user)
 ):
     plan_service = PlanCreationService(db)
     try:
-        plan_data = plan_service.get_todays_plan_for_user(user_id=user.id)
+        plan_data = await plan_service.get_todays_plan_for_user(user_id=user.id)
         return plan_data
     except Exception as e:
         raise HTTPException(
