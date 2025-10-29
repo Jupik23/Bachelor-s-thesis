@@ -47,22 +47,23 @@
                 <p v-if="!planData.meals.length" class="no-data">No meals found for today.</p>
             </Card>
             <Card title="Medications">
-                <ul v-if="medicationNamesFromHealthForm.length" class="item-list simple-list">
-                    <li v-for="(medName, index) in medicationNamesFromHealthForm" :key="index" class="list-item simple-item">
-                        <span>{{ medName }}</span>
-                        <div class="checkbox-wrapper">
-                                <input 
-                                    type="checkbox" 
-                                    :id="'med-' + med.id"
-                                    v-model="med.taken"
-                                    @change="updateMedicationStatus(med)"
-                                />
-                                <label :for="'med-' + med.id">{{ med.taken ? 'Taken' : 'Mark as taken' }}</label>
+                <ul v-if="planData.medications && planData.medications.length" class="item-list simple-list">
+                    <li v-for="med in planData.medications" :key="med.id" class="list-item simple-item med-item" :class="{ 'is-taken': med.taken }">
+                        <div class="med-details">
+                                <strong>{{ med.name }}</strong> ({{ formatTime(med.time) }})
+                                <p>{{ med.description }}</p>
                             </div>
+                            <input 
+                                type="checkbox" 
+                                :id="'med-' + med.id"
+                                v-model="med.taken"
+                                @change="updateMedicationStatus(med)"
+                            />
+                            <label :for="'med-' + med.id">{{ med.taken ? 'Taken' : 'Mark as taken' }}</label>
                         </li>
                 </ul>
                 <p v-else class="no-data">No medications listed in your Health Form.</p>
-                <RouterLink to="/health_form" class="btn-secondary">Edit Medications in Health Form</RouterLink>
+                <RouterLink to="/health-form" class="btn-secondary">Edit Medications in Health Form</RouterLink>
             </Card>
 
             <Card title="Interaction Alerts">
@@ -132,19 +133,8 @@ const loadInitialData = async () => {
     planData.value = null; 
     medicationNamesFromHealthForm.value = [];
     try {
-        const [planResponse, healthFormResponse] = await Promise.all([
-            api.get("api/v1/meals/today"),
-            api.get("api/v1/health-form/me")
-        ]);
+        const planResponse = await api.get("api/v1/meals/today");
         planData.value = planResponse.data;
-        if (healthFormResponse.data && healthFormResponse.data.medicament_usage) {
-            const medString = healthFormResponse.data.medicament_usage;
-            if (typeof medString === 'string') {
-                medicationNamesFromHealthForm.value = medString.split(',')
-                    .map(med => med.trim())
-                    .filter(med => med.length > 0);
-            }
-        }
     } catch (e) {
         console.error("Error loading initial data: ", e);
         error.value = e.response?.data?.detail || "Could not load initial data.";
@@ -176,7 +166,7 @@ async function updateMedicationStatus(medication) {
         taken: medication.taken
     };
     try {
-        await api.patch(`/api/v1/medications/${medication.id}`, payload);
+        await api.patch(`/api/v1/plans/${medication.id}/medication`, payload);
     } catch (e) {
         console.error("Failed to update medication status:", e);
         error.value = "Failed to update medication. Please try again.";

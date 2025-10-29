@@ -50,7 +50,7 @@ async def validate_new_drug(request: DrugValidationRequest, db: Session = Depend
     return await medication_service.validate_drug(request.drug_name)
 
 
-@router.patch("/{medication_id}", response_model=MedicationResponse)
+@router.patch("/{medication_id}/medication", response_model=MedicationResponse)
 async def update_medication_status_endpoint(
     medication_id: int,
     update_data: MedicationStatusUpdate,
@@ -70,7 +70,7 @@ async def update_medication_status_endpoint(
         )
     updated_medication =update_medication_status(
         db=db, 
-        medication_id=medication_id, 
-        update_data=update_data
+        med_id=medication_id, 
+        updated_data=update_data
     )
     return updated_medication
