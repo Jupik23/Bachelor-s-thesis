@@ -35,6 +35,6 @@ def change_meal_status(db: Session, meal_id: int, updated_data: MealStatusUpdate
          db_meal.comment = updated_data.comment
     elif updated_data.eaten is False: 
           db_meal.comment = None
-    db.update()
+    db.commit()
     db.refresh(db_meal)
     return db_meal
