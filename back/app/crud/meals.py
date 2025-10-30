@@ -12,7 +12,8 @@ def create_meal(db: Session, plan_id: int, meal_type: MealType, time: time, desc
         time=time,
         description=description,
         eaten=False,
-        comment=None
+        comment=None,
+        spoonacular_recipe_id=spoonacular_recipe_id
     )
     db.add(meal_data)
     db.commit()
