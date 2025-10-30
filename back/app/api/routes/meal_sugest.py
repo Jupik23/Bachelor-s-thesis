@@ -1,11 +1,15 @@
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.utils.jwt import get_current_user
 from app.services.plan import PlanCreationService
 from app.schemas.plan import PlanResponse, MealResponse, ManualMealAddRequest, MealStatusUpdate
+from app.schemas.shopping_list import ShoppingListResponse
 from app.crud.meals import *
-from typing import Optional
+import logging
+from datetime import date
+
 
 router = APIRouter(prefix="/api/v1/meals",  tags=["meals"])
 
@@ -98,3 +102,25 @@ async def meal_status_update(meal_id: int, updated_data: MealStatusUpdate,
         updated_data=updated_data
     )
     return updated_meal
+
+@router.get("/shopping-list", response_model=ShoppingListResponse)
+async def get_shopping_list_for_today(db: Session = Depends(get_database),
+                                      current_user: dict = Depends(get_current_user)):
+    plan_service = PlanCreationService(db=db)
+    try:
+        shopping_list = await plan_service.get_shopping_list_for_user(
+            user_id=current_user.id,
+            plan_date=date.today()
+        )
+        return shopping_list
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Spoonacular error: {e.response.text}"
+        )
+    except Exception as e:
+        logging.error(f"Error generating shopping list: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate shopping list."
+        )

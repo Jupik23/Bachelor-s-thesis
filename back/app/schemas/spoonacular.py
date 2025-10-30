@@ -1,6 +1,14 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 
+class Ingredient(BaseModel):
+    id: int
+    aisle: Optional[str] = None
+    name: str
+    original: str
+    amount: float
+    unit: str
+
 class Recipe(BaseModel):
     id: int
     title: str
