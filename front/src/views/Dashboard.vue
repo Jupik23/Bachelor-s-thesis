@@ -18,33 +18,35 @@ import Stats from "@/components/dashboard/Stats.vue";
 import TodayInfo from "@/components/dashboard/TodayInfo.vue";
 import api from "@/lib/api.js"
 const today = new Date().toDateString();
+const formatTime = (inputTime) => {
+    if (!inputTime) return '';
+    try {
+        const parts = inputTime.split(":");
+        return `${parts[0]}:${parts[1]}`;
+    } catch (e) {
+        return String(inputTime).substring(0, 5);
+    }
+};
 const cards_data = ref([
     {
         title: "Todays medication",
-        content: [
-            { id: 1, text: "Vitamin D (1 tab) at 08:00" },
-            { id: 2, text: "Magnessium (2 tabs) at 20:00" },
-        ],
+        content: [],
     },
     {
         title: "Todays meals",
-        content: [
-            { id: 1, text: "Breakfast 400 kcal"},
-            { id: 2, text: "Lunch 300 kcal"},
-            { id: 3, text: "Dinner 900 kcal"},
-        ]
+        content: []
     },
     {
         title: "Interaction alerts",
-        content: [{id: 1, text: "None!"},]
+        content: []
     },
 ])
 
 const stats = ref([
     {
         title: "Medications Taken",
-        value: 2,
-        unit: "/3",
+        value: 0,
+        unit: "/0",
     },
     {
         title: "Target Calories",
@@ -53,17 +55,54 @@ const stats = ref([
     },
     {
         title: "Health Score",
-        value: 95,
+        value: 95, //in future there will be algorithm for this :keku:
         unit: "%",
     },
 ])
 const getStats = async () => {
     try{
-        const response = await api.get("/api/v1/health-form/me/calories");
-        //const response2 = await api.post("/api/v1/meals/generate");
-        const targetCalories = response?.data?.target_calories ?? 0;
-        stats.value[1].value = targetCalories;
-        console.log(response2)
+        const response = await api.get("/api/v1/meals/today");
+        const planData = response.data;
+        if (planData.medications && planData.medications.length > 0) {
+            const takenCount = planData.medications.filter(med => med.taken).length;
+            const totalCount = planData.medications.length;
+            stats.value[0].value = takenCount;
+            stats.value[0].unit = `/${totalCount}`;
+        }
+        if (planData.total_calories > 0){
+            stats.value[1].value = planData.total_calories
+        }
+        else{
+            const calorieResponse = await api.get("/api/v1/health-form/me/calories");
+            stats.value[1].value = calorieResponse?.data?.target_calories ?? 0; 
+        }
+
+        if (planData.medications && planData.medications.length > 0) {
+            cards_data.value[0].content = planData.medications.map(med => ({
+                id: med.id,
+                text: `${med.name} at ${formatTime(med.time)}`
+            }));
+        } else {
+            cards_data.value[0].content = [{ id: 1, text: "No medications for today." }];
+        }
+
+        if (planData.meals && planData.meals.length > 0) {
+            cards_data.value[1].content = planData.meals.map(meal => ({
+                id: meal.id,
+                text: `${meal.meal_type.toUpperCase()}: ${meal.description.split('.')[0]}`
+            }));
+        } else {
+            cards_data.value[1].content = [{ id: 1, text: "No meals planned for today." }];
+        }
+
+        if (planData.interactions && planData.interactions.length > 0) {
+            cards_data.value[2].content = planData.interactions.map((alert, index) => ({
+                id: index,
+                text: `${alert.severity}: ${alert.medication_1} & ${alert.medication_2}`
+            }));
+        } else {
+            cards_data.value[2].content = [{ id: 1, text: "No significant interactions found." }];
+        }
     }catch(error){
         console.log(error)
     }

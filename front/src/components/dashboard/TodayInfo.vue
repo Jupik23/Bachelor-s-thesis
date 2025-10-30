@@ -12,12 +12,12 @@
         </li>
     </ul>
     <p v-else>No data to show</p>
-    <button 
+    <RouterLink to="/todays-plan"
             v-if="card_data.title !== 'Interaction alerts'" 
             class="btn-primary"
             @click="viewFullSchedule(card_data.title)">
             View Full Schedule!
-        </button>
+        </RouterLink>
     </Card>
 </div>
 </template> 
