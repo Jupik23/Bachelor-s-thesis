@@ -28,6 +28,7 @@ class RecipeInformation(BaseModel):
     servings: Optional[int] = None
     sourceUrl: Optional[str] = None
     image: Optional[str] = None
+    extendedIngredients: Optional[List[Ingredient]] = []
     
 class Nutrients(BaseModel):
     calories: float
