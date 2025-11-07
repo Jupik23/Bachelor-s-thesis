@@ -14,7 +14,7 @@
             autocomplete="email" required>
           <input v-model="reg.password" type="password" placeholder="Password (min 6)"
               minlength="6" required>
-          <button class="button" type="submit" :disabled="loading">
+          <button class="btn btn-primary" type="submit" :disabled="loading">
             {{ loading ? 'Creating…' : 'Create' }}
           </button>
           <p v-if="err" class="ta-center" style="color:var(--danger,#d33)">{{ err }}</p>
