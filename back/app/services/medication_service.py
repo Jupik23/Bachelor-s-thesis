@@ -41,7 +41,7 @@ class DrugInteractionService:
 
             return str(data['idGroup']['rxnormId'][0])
         
-        logging.error(f"No rcxui for: {drug_name}")
+        logging.error(f"No rxcui for: {drug_name}")
         return None
     
     async def check_drug_interaction(self, rxnorm_ids: List[str]):
@@ -55,11 +55,9 @@ class DrugInteractionService:
         
         interactions_list = []
 
-        if (data and 
-            data.get('fullInteractionTypeGroup') and 
-            data['fullInteractionTypeGroup'][0].get('fullInteractionType')):
+        if data and data.get('fullInteractionTypeGroup'):
             
-            for group in data['fullInteractionTypeGroup']:
+            for group in data.get('fullInteractionTypeGroup', []):
                 for interaction_type in group.get('fullInteractionType', []):
                     for pair in interaction_type.get('interactionPair', []):
 
@@ -103,9 +101,11 @@ class MedicationService:
                 rxnorm_ids.append(rx_id)
 
         all_meds_in_plan = get_medications_by_plan_id(self.db, plan_id)
-        all_med_names = [m.name for m in all_meds_in_plan]
+        all_rxnorm_ids_in_plan = [m.rxnorm_id for m in all_meds_in_plan if m.rxnorm_id]
         
-        interactions = await self.interaction_checker.check_drug_interaction(rxnorm_ids)
+        interactions = await self.interaction_checker.check_drug_interaction(
+            list(set(all_rxnorm_ids_in_plan))
+        )
         
         self.db.commit() 
         

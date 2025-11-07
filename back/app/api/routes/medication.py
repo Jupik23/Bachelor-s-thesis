@@ -9,10 +9,20 @@ from app.schemas.medication import (MedicationCreate, MedicationListResponse,
 from app.services.medication_service import MedicationService
 from typing import List
 
-router = APIRouter(prefix="/api/v1/plans", tags=["medications"])
+router = APIRouter(prefix="/api/v1/medications", tags=["medications"])
 
 @router.post(
-    "/{plan_id}/medications", 
+    "/validate", 
+    response_model=DrugValidationResponse,
+    status_code=status.HTTP_200_OK
+)
+async def validate_new_drug(request: DrugValidationRequest, db: Session = Depends(get_database)):
+    medication_service = MedicationService(db)
+    return await medication_service.validate_drug(request.drug_name)
+
+
+@router.post(
+    "/{plan_id}", 
     response_model=MedicationListResponse,
     status_code=status.HTTP_201_CREATED
 )
@@ -39,16 +49,6 @@ async def add_medications_to_plan(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error while adding meds: {e}"
         )
-    
-@router.post(
-    "/validate", 
-    response_model=DrugValidationResponse,
-    status_code=status.HTTP_200_OK
-)
-async def validate_new_drug(request: DrugValidationRequest, db: Session = Depends(get_database)):
-    medication_service = MedicationService(db)
-    return await medication_service.validate_drug(request.drug_name)
-
 
 @router.patch("/{medication_id}/medication", response_model=MedicationResponse)
 async def update_medication_status_endpoint(

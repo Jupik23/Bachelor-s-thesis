@@ -4,13 +4,14 @@ from app.services.spoonacular import Spoonacular
 from app.services.health_form import HealthFormService
 from app.schemas.health_form import HealthFormCreate
 from app.schemas.plan import PlanCreate, PlanResponse
+from app.schemas.medication import MedicationCreate
 from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse
 from app.schemas.plan import ManualMealAddRequest, MealResponse
+from app.crud.medication import get_medications_by_plan_id, create_medication
 from app.models.common import MealType
 from app.services.medication_service import DrugInteractionService, DrugInteractionResponse, MedicationResponse
 from app.schemas.shopping_list import *
-from app.crud.medication import get_medications_by_plan_id
-from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date
+from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date, get_plan_by_id
 from app.crud.meals import create_meal
 import logging
 from typing import List
@@ -67,7 +68,7 @@ class PlanCreationService:
             )
             new_plan = create_plan(db=self.db, plan_data=plan_data)
             num_meals = user_health_form_data.number_of_meals_per_day
-            meal_mapping = MEAL_MAPPING_5_MEALS if num_meals > 3 else MEAL_MAPPING_5_MEALS
+            meal_mapping = MEAL_MAPPING_5_MEALS if num_meals > 3 else MEAL_MAPPING_3_MEALS
 
             for index, meal_data in enumerate(plan_response.meals):
                 if index not in meal_mapping:
@@ -83,6 +84,28 @@ class PlanCreationService:
                     description=f"{meal_data.title}",
                     spoonacular_recipe_id=meal_data.id
                 )
+
+            med_string = user_health_form_data.medicament_usage
+            if med_string:
+                med_names = [name.strip() for name in med_string.split(',') if name.strip()]
+                
+                for med_name in med_names:
+                    rx_id = await self.interaction_checker.get_rxnorm_id(med_name)
+                    
+                    med_data = MedicationCreate(
+                        name=med_name,
+                        time=time(8, 0),
+                        description="Lek dodany z Formularza Zdrowia",
+                        with_meal_relation="empty_stomach"
+                    )
+                    
+                    create_medication(
+                        db=self.db,
+                        plan_id=new_plan.id,
+                        medication_data=med_data,
+                        rxnorm_id=rx_id
+                    )
+            self.db.commit()
             return new_plan
         except ValueError as ve: 
              logging.error(f"Spoonacular API or validation error: {ve}")
@@ -117,12 +140,22 @@ class PlanCreationService:
             except Exception as e:
                 logging.error(f"Error parsing medicament_usage from HealthForm: {e}")
 
+        db_medications = []
+        rxnorm_ids_from_plan = []
+        if user_plan:
+            db_medications = get_medications_by_plan_id(self.db, user_plan.id)
+            rxnorm_ids_from_plan = [m.rxnorm_id for m in db_medications if m.rxnorm_id]
+        
+        rxnorm_ids_from_form = []
         if medication_names_from_form:
-            tasks = [self.interaction_checker.get_rxnorm_id(name) for name in medication_names_from_form]
-            rxnorm_ids_results = await asyncio.gather(*tasks)
-            rxnorm_ids = [rx_id for rx_id in rxnorm_ids_results if rx_id]
-            if rxnorm_ids:
-                interactions = await self.interaction_checker.check_drug_interaction(rxnorm_ids)
+            tasks_form = [self.interaction_checker.get_rxnorm_id(name) for name in medication_names_from_form]
+            rxnorm_ids_from_form_results = await asyncio.gather(*tasks_form)
+            rxnorm_ids_from_form = [rx_id for rx_id in rxnorm_ids_from_form_results if rx_id]
+
+        all_rxnorm_ids = list(set(rxnorm_ids_from_plan + rxnorm_ids_from_form))
+
+        if all_rxnorm_ids:
+            interactions = await self.interaction_checker.check_drug_interaction(all_rxnorm_ids)
 
         if not user_plan:
             return PlanResponse(
@@ -139,7 +172,6 @@ class PlanCreationService:
                 interactions=interactions
             )
         else:
-            db_medications = get_medications_by_plan_id(self.db, user_plan.id)
             return PlanResponse(
                 id=user_plan.id,
                 user_id=user_plan.user_id,
@@ -156,7 +188,7 @@ class PlanCreationService:
 
     
     async def add_meal_manually(self, plan_id: int, meal_request: ManualMealAddRequest) -> MealResponse:
-        plan = get_plan_with_meals_by_user_id_and_date(self.db, plan_id)
+        plan = get_plan_by_id(self.db, plan_id)
         if not plan:
             raise ValueError(f"Plan o ID {plan_id} nie został znaleziony.")
         

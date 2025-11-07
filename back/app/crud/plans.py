@@ -10,6 +10,9 @@ def create_plan(db: Session, plan_data: PlanCreate):
     db.refresh(new_plan)
     return new_plan
 
+def get_plan_by_id(db: Session, plan_id:int):
+    return db.query(Plan).filter(Plan.id == plan_id).first()
+
 def get_plan_with_meals_by_user_id_and_date(db: Session, user_id: int, plan_date: date = date.today()):
     return (
         db.query(Plan).options(joinedload(Plan.meals),
