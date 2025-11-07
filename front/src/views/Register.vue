@@ -80,10 +80,9 @@ async function onRegister() {
 </script>
 <style scoped>
 .container{
-  height: 80vh;
+  min-height: 80vh; 
   display: flex;
   justify-content: center;
   align-items: center; 
 }
-
 </style>

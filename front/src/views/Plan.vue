@@ -134,6 +134,7 @@ const loadInitialData = async () => {
     medicationNamesFromHealthForm.value = [];
     try {
         const planResponse = await api.get("api/v1/meals/today");
+        console.log(test)
         planData.value = planResponse.data;
     } catch (e) {
         console.error("Error loading initial data: ", e);
@@ -175,6 +176,7 @@ async function updateMedicationStatus(medication) {
 }
 
 onMounted(() => {
+    //generatePlan()
     loadInitialData();
 })
 </script>
