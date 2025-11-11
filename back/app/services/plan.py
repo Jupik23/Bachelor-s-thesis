@@ -1,23 +1,24 @@
 from sqlalchemy.orm import Session
 from datetime import date, time
+import logging
+from typing import List
+import os
+import asyncio
+from fastapi import HTTPException, status
+
 from app.services.spoonacular import Spoonacular
 from app.services.health_form import HealthFormService
 from app.schemas.health_form import HealthFormCreate
-from app.schemas.plan import PlanCreate, PlanResponse
-from app.schemas.medication import MedicationCreate
-from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse
-from app.schemas.plan import ManualMealAddRequest, MealResponse
-from app.crud.medication import get_medications_by_plan_id, create_medication
-from app.models.common import MealType
+from app.schemas.plan import PlanCreate, PlanResponse, ManualMealAddRequest, MealResponse
+from app.schemas.spoonacular import DailyPlanResponse
+from app.models.common import MealType, WithMealRelation
 from app.services.medication_service import DrugInteractionService, DrugInteractionResponse, MedicationResponse
-from app.schemas.shopping_list import *
-from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date, get_plan_by_id
+from app.schemas.shopping_list import ShoppingListResponse, ShoppingListCategory
+from app.crud.medication import get_medications_by_plan_id, create_medication
+from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date
 from app.crud.meals import create_meal
-import logging
-from typing import List
-from fastapi import HTTPException,status
-import os
-import asyncio
+from app.schemas.medication import MedicationCreate
+
 
 MEAL_MAPPING_3_MEALS = {
     0: (MealType.breakfast, time(8, 0)),
@@ -49,76 +50,118 @@ class PlanCreationService:
         try:
             user_health_form_data = HealthFormCreate.model_validate(user_health_form_model.__dict__)
         except Exception as e:
-            raise ValueError(f"Data from health_form are not correctly: {e}" )
+            raise ValueError(f"Data from health_form are not correctly: {e}")
+        
         try:
-            plan_response: DailyPlanResponse = await self.spoonacular_service.generate_meal_plan(
+            plan_response_spoonacular: DailyPlanResponse = await self.spoonacular_service.generate_meal_plan(
                 health_form=user_health_form_data,
                 time_frame=time_frame
             )
-            if plan_response is None or not hasattr(plan_response, 'meals'):
-                 raise ValueError("Received invalid plan data from Spoonacular.")
+            if plan_response_spoonacular is None or not hasattr(plan_response_spoonacular, 'meals'):
+                raise ValueError("Received invalid plan data from Spoonacular.")
+            
             plan_data = PlanCreate(
-            user_id = user_id,
-            created_by = created_by_id,
-            day_start = date.today(),
-            total_calories = plan_response.nutrients.calories,
-            total_protein = plan_response.nutrients.protein,
-            total_fat = plan_response.nutrients.fat,
-            total_carbohydrates = plan_response.nutrients.carbohydrates,
+                user_id=user_id,
+                created_by=created_by_id,
+                day_start=date.today(),
+                total_calories=plan_response_spoonacular.nutrients.calories,
+                total_protein=plan_response_spoonacular.nutrients.protein,
+                total_fat=plan_response_spoonacular.nutrients.fat,
+                total_carbohydrates=plan_response_spoonacular.nutrients.carbohydrates,
             )
             new_plan = create_plan(db=self.db, plan_data=plan_data)
             num_meals = user_health_form_data.number_of_meals_per_day
             meal_mapping = MEAL_MAPPING_5_MEALS if num_meals > 3 else MEAL_MAPPING_3_MEALS
 
-            for index, meal_data in enumerate(plan_response.meals):
+            for index, meal_data in enumerate(plan_response_spoonacular.meals):
                 if index not in meal_mapping:
                     continue
-
                 meal_type, meal_time = meal_mapping[index]
-
                 create_meal(
                     db=self.db,
-                    plan_id = new_plan.id,
+                    plan_id=new_plan.id,
                     meal_type=meal_type,
                     time=meal_time,
                     description=f"{meal_data.title}",
                     spoonacular_recipe_id=meal_data.id
                 )
-
-            med_string = user_health_form_data.medicament_usage
-            if med_string:
-                med_names = [name.strip() for name in med_string.split(',') if name.strip()]
-                
-                for med_name in med_names:
-                    rx_id = await self.interaction_checker.get_rxnorm_id(med_name)
-                    
+            
+            self.db.commit()
+            
+            saved_medications: List[MedicationResponse] = []
+            interactions: List[DrugInteractionResponse] = []
+            medication_names_from_form: List[str] = []
+            
+            if user_health_form_model.medicament_usage:
+                try:
+                    med_string = user_health_form_model.medicament_usage
+                    if isinstance(med_string, str):
+                        medication_names_from_form = [name.strip() for name in med_string.split(',') if name.strip()]
+                    elif isinstance(med_string, list):
+                        medication_names_from_form = [str(name).strip() for name in med_string if str(name).strip()]
+                except Exception as e:
+                    logging.error(f"Error parsing medicament_usage from HealthForm: {e}")
+            
+            if medication_names_from_form:
+                for med_name in medication_names_from_form:
                     med_data = MedicationCreate(
                         name=med_name,
                         time=time(8, 0),
-                        description="Lek dodany z Formularza Zdrowia",
-                        with_meal_relation="empty_stomach"
+                        with_meal_relation=WithMealRelation.empty_stomach,
+                        description="Proszę uzupełnić dawkę i zweryfikować godzinę."
                     )
                     
-                    create_medication(
+                    db_med = create_medication(
                         db=self.db,
-                        plan_id=new_plan.id,
+                        plan_id=new_plan.id, 
                         medication_data=med_data,
-                        rxnorm_id=rx_id
                     )
-            self.db.commit()
-            return new_plan
+                
+                try:
+                    self.db.commit()
+                    logging.info(f"Successfully saved {len(medication_names_from_form)} medications for plan {new_plan.id}")
+                except Exception as e:
+                    logging.error(f"Error committing medications to database: {e}")
+                    self.db.rollback()
+
+                try:
+                    interactions = await self.interaction_checker.check_drug_interaction(medication_names_from_form)
+                except Exception as e:
+                    logging.error(f"Error checking drug interactions: {e}")
+                    interactions = []
+            
+            self.db.refresh(new_plan)
+
+            db_medications = get_medications_by_plan_id(self.db, new_plan.id)
+
+            final_plan_response = PlanResponse(
+                id=new_plan.id,
+                user_id=new_plan.user_id,
+                created_by=new_plan.created_by,
+                day_start=new_plan.day_start,
+                meals=[MealResponse.model_validate(meal) for meal in new_plan.meals],
+                total_calories=new_plan.total_calories,
+                total_protein=new_plan.total_protein,
+                total_fat=new_plan.total_fat,
+                total_carbohydrates=new_plan.total_carbohydrates,
+                medications=[MedicationResponse.model_validate(med) for med in db_medications],
+                interactions=interactions
+            )
+            
+            return final_plan_response
+
         except ValueError as ve: 
-             logging.error(f"Spoonacular API or validation error: {ve}")
-             raise HTTPException(
-                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                 detail=f"Spoonacular service error: {ve}"
-             )
+            logging.error(f"Spoonacular API or validation error: {ve}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Spoonacular service error: {ve}"
+            )
         except Exception as e: 
             logging.exception("Unexpected error during plan generation:") 
             raise HTTPException(
-                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                 detail=f"An unexpected error occurred during plan generation: {e}"
-             )
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"An unexpected error occurred during plan generation: {e}"
+            )
     
     async def get_todays_plan_for_user(self, user_id: int):
         user_plan = get_plan_with_meals_by_user_id_and_date(
@@ -134,28 +177,18 @@ class PlanCreationService:
             try:
                 med_string = health_form_model.medicament_usage
                 if isinstance(med_string, str):
-                     medication_names_from_form = [name.strip() for name in med_string.split(',') if name.strip()]
+                    medication_names_from_form = [name.strip() for name in med_string.split(',') if name.strip()]
                 elif isinstance(med_string, list):
-                     medication_names_from_form = [str(name).strip() for name in med_string if str(name).strip()]
+                    medication_names_from_form = [str(name).strip() for name in med_string if str(name).strip()]
             except Exception as e:
                 logging.error(f"Error parsing medicament_usage from HealthForm: {e}")
 
-        db_medications = []
-        rxnorm_ids_from_plan = []
-        if user_plan:
-            db_medications = get_medications_by_plan_id(self.db, user_plan.id)
-            rxnorm_ids_from_plan = [m.rxnorm_id for m in db_medications if m.rxnorm_id]
-        
-        rxnorm_ids_from_form = []
         if medication_names_from_form:
-            tasks_form = [self.interaction_checker.get_rxnorm_id(name) for name in medication_names_from_form]
-            rxnorm_ids_from_form_results = await asyncio.gather(*tasks_form)
-            rxnorm_ids_from_form = [rx_id for rx_id in rxnorm_ids_from_form_results if rx_id]
-
-        all_rxnorm_ids = list(set(rxnorm_ids_from_plan + rxnorm_ids_from_form))
-
-        if all_rxnorm_ids:
-            interactions = await self.interaction_checker.check_drug_interaction(all_rxnorm_ids)
+            try:
+                interactions = await self.interaction_checker.check_drug_interaction(medication_names_from_form)
+            except Exception as e:
+                logging.error(f"Error checking drug interactions: {e}")
+                interactions = []
 
         if not user_plan:
             return PlanResponse(
@@ -172,6 +205,7 @@ class PlanCreationService:
                 interactions=interactions
             )
         else:
+            db_medications = get_medications_by_plan_id(self.db, user_plan.id)
             return PlanResponse(
                 id=user_plan.id,
                 user_id=user_plan.user_id,
@@ -186,9 +220,8 @@ class PlanCreationService:
                 interactions=interactions
             )
 
-    
     async def add_meal_manually(self, plan_id: int, meal_request: ManualMealAddRequest) -> MealResponse:
-        plan = get_plan_by_id(self.db, plan_id)
+        plan = get_plan_with_meals_by_user_id_and_date(self.db, plan_id)
         if not plan:
             raise ValueError(f"Plan o ID {plan_id} nie został znaleziony.")
         
@@ -196,7 +229,7 @@ class PlanCreationService:
             meal_request.spoonacular_recipe_id
         )
         if not recipe_info:
-             raise ValueError(f"Nie znaleziono przepisu o ID {meal_request.spoonacular_recipe_id}.")
+            raise ValueError(f"Nie znaleziono przepisu o ID {meal_request.spoonacular_recipe_id}.")
 
         description = f"{recipe_info.title}" 
         if recipe_info.readyInMinutes:
@@ -213,22 +246,25 @@ class PlanCreationService:
 
         return MealResponse.model_validate(new_meal_orm)
     
-    async def get_shopping_list_for_user(self, user_id, plan_date:date):
+    async def get_shopping_list_for_user(self, user_id, plan_date: date):
         user_plan = get_plan_with_meals_by_user_id_and_date(self.db, user_id, plan_date)
         if not user_plan:
-            return ShoppingListResponse(total_items = 0, categories = [])
+            return ShoppingListResponse(total_items=0, categories=[])
+        
         recipe_ids = [meal.spoonacular_recipe_id for meal in user_plan.meals
-                       if meal.spoonacular_recipe_id]
+                        if meal.spoonacular_recipe_id]
         if not recipe_ids:
-            return ShoppingListResponse(total_items = 0, categories = [])
-        tasks = [ self.spoonacular_service.get_recipe_information(recipe_id=recipie_id)
-                                                                  for recipie_id in recipe_ids]
-        recipie_infos = await asyncio.gather(*tasks)
+            return ShoppingListResponse(total_items=0, categories=[])
+        
+        tasks = [self.spoonacular_service.get_recipe_information(recipe_id=recipe_id)
+                 for recipe_id in recipe_ids]
+        recipe_infos = await asyncio.gather(*tasks)
 
         all_ingredients = []
-        for recipe in recipie_infos:
+        for recipe in recipe_infos:
             if recipe and recipe.extendedIngredients:
                 all_ingredients.extend(recipe.extendedIngredients)
+        
         categorized_items = {}
         for ingredient in all_ingredients:
             category = ingredient.aisle if ingredient.aisle else "Other"
@@ -245,6 +281,7 @@ class PlanCreationService:
                 ShoppingListCategory(category=category_name, items=unique_items)
             )
         response_categories.sort(key=lambda x: x.category)
+        
         return ShoppingListResponse(
             total_items=len(all_ingredients),
             categories=response_categories

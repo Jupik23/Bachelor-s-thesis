@@ -11,68 +11,165 @@ import os
 
 class DrugInteractionService:
     def __init__(self, fda_api_key: Optional[str]):
-        self.rxnav_base = "https://rxnav.nlm.nih.gov/REST"
-        self.opnefda_base = "https://api.fda.gov/drug/event.json"
+        self.openfda_base = "https://api.fda.gov/drug"
         self.api_key = fda_api_key
 
     async def _make_request(self, url: str, params: Dict[str, Any] = None):
         if params is None:
             params = {}
+        if self.api_key and 'api_key' not in params:
+            params['api_key'] = self.api_key
             
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.get(url, params=params)
                 response.raise_for_status()
                 return response.json()
             except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    logging.debug(f"No FDA data found for query: {params.get('search', 'unknown')}")
+                    return None
                 logging.error(f"HTTP Error {e.response.status_code} dla {url}: {e.response.text}")
                 return None
             except Exception as e:
                 logging.error(f"Request error: {str(e)}")
-                raise 
+                return None
 
-    async def get_rxnorm_id(self, drug_name: str):
-        endpoint = f"{self.rxnav_base}/rxcui.json"
-        data = await self._make_request(endpoint, params={"name": drug_name})
+    async def validate_drug_name(self, drug_name: str) -> bool:
+        endpoint = f"{self.openfda_base}/label.json"
 
-        if (data and data.get('idGroup') and 
-            data['idGroup'].get('rxnormId') and 
-            data['idGroup']['rxnormId']):
-
-            return str(data['idGroup']['rxnormId'][0])
+        search_queries = [
+            f'openfda.brand_name:"{drug_name}"',
+            f'openfda.generic_name:"{drug_name}"',
+            f'openfda.brand_name:{drug_name}',
+            f'openfda.generic_name:{drug_name}'
+        ]
         
-        logging.error(f"No rxcui for: {drug_name}")
+        for search_query in search_queries:
+            params = {
+                "search": search_query,
+                "limit": 1
+            }
+            
+            data = await self._make_request(endpoint, params=params)
+            if data and data.get('results'):
+                return True
+        
+        return False
+    
+    async def _get_drug_label_info(self, drug_name: str) -> Optional[Dict]:
+        """Pobiera informacje o leku z OpenFDA Drug Label endpoint"""
+        endpoint = f"{self.openfda_base}/label.json"
+        
+        search_queries = [
+            f'openfda.brand_name:"{drug_name}"',
+            f'openfda.generic_name:"{drug_name}"',
+            f'openfda.brand_name:{drug_name}',
+            f'openfda.generic_name:{drug_name}'
+        ]
+        
+        for search_query in search_queries:
+            params = {
+                "search": search_query,
+                "limit": 1
+            }
+            
+            data = await self._make_request(endpoint, params=params)
+            if data and data.get('results'):
+                return data['results'][0]
+        
         return None
     
-    async def check_drug_interaction(self, rxnorm_ids: List[str]):
-        if len(rxnorm_ids)<2:
+    async def _check_interaction_in_label(self, drug_name: str, other_drug_name: str) -> Optional[str]:
+        label_data = await self._get_drug_label_info(drug_name)
+        
+        if not label_data:
+            return None
+        
+        sections_to_check = [
+            'drug_interactions',
+            'warnings',
+            'precautions',
+            'boxed_warning',
+            'warnings_and_cautions'
+        ]
+        
+        other_drug_lower = other_drug_name.lower()
+        
+        for section in sections_to_check:
+            if section in label_data:
+                content = label_data[section]
+                if isinstance(content, list):
+                    content = ' '.join(content)
+                
+                if isinstance(content, str) and other_drug_lower in content.lower():
+                    sentences = content.split('.')
+                    for sentence in sentences:
+                        if other_drug_lower in sentence.lower():
+                            return sentence.strip()[:300]
+        
+        return None
+
+    async def check_drug_interaction(self, drug_names: List[str]) -> List[DrugInteractionResponse]:
+        if len(drug_names) < 2:
             return []
         
-        rxcui_list = "+".join(rxnorm_ids)
-        endpoint = f"{self.rxnav_base}/interaction/list.json"
-        params = {"rxcuis": rxcui_list, "allSources": 1}
-        data = await self._make_request(endpoint, params=params)
-        
         interactions_list = []
-
-        if data and data.get('fullInteractionTypeGroup'):
-            
-            for group in data.get('fullInteractionTypeGroup', []):
-                for interaction_type in group.get('fullInteractionType', []):
-                    for pair in interaction_type.get('interactionPair', []):
-
-                        drug1_name = pair['interactionConcept'][0]['minConceptItem']['name']
-                        drug2_name = pair['interactionConcept'][1]['minConceptItem']['name']
-
-                        interactions_list.append(DrugInteractionResponse(
-                            medication_1=drug1_name,
-                            medication_2=drug2_name,
-                            severity=pair.get('severity', 'Unknown'),
-                            description=pair.get('description', 'Brak szczegółowego opisu.')
-                        ))
-                        
+        checked_pairs = set()
+        
+        for i in range(len(drug_names)):
+            for j in range(i + 1, len(drug_names)):
+                drug1 = drug_names[i]
+                drug2 = drug_names[j]
+                
+                pair_key = tuple(sorted([drug1.lower(), drug2.lower()]))
+                if pair_key in checked_pairs:
+                    continue
+                
+                checked_pairs.add(pair_key)
+                interaction_desc_1 = await self._check_interaction_in_label(drug1, drug2)
+                interaction_desc_2 = await self._check_interaction_in_label(drug2, drug1)
+                if interaction_desc_1 or interaction_desc_2:
+                    description = interaction_desc_1 or interaction_desc_2
+                    
+                    severity = self._determine_severity(description)
+                    
+                    interactions_list.append(DrugInteractionResponse(
+                        medication_1=drug1,
+                        medication_2=drug2,
+                        severity=severity,
+                        description=description or 'Możliwa interakcja między lekami. Skonsultuj się z lekarzem.'
+                    ))
+        
         return interactions_list
     
+    def _determine_severity(self, description: str) -> str:
+        if not description:
+            return "Unknown"
+        
+        description_lower = description.lower()
+        
+        high_risk_keywords = [
+            'contraindicated', 'severe', 'serious', 'fatal', 'death',
+            'life-threatening', 'emergency', 'immediately', 'avoid',
+            'do not', 'should not', 'must not'
+        ]
+        
+        moderate_risk_keywords = [
+            'caution', 'monitor', 'may increase', 'may decrease',
+            'adjust dose', 'careful', 'warning', 'consider'
+        ]
+        
+        for keyword in high_risk_keywords:
+            if keyword in description_lower:
+                return "High"
+        
+        for keyword in moderate_risk_keywords:
+            if keyword in description_lower:
+                return "Moderate"
+        
+        return "Low"
+
 
 class MedicationService:
     def __init__(self, db: Session):
@@ -82,30 +179,23 @@ class MedicationService:
 
     async def add_medications_to_plan(
             self, 
-            plan_id:int,
+            plan_id: int,
             medications_data: List[MedicationCreate]
     ):
         
         saved_medications: List[MedicationResponse] = []
         medication_names: List[str] = []
-        rxnorm_ids: List[str] = []
 
         for med_data in medications_data:
-            rx_id = await self.interaction_checker.get_rxnorm_id(med_data.name)
-            db_med = create_medication(self.db, plan_id=plan_id,
-                                        medication_data=med_data,
-                                        rxnorm_id = rx_id)
+            db_med = create_medication(
+                self.db, 
+                plan_id=plan_id,
+                medication_data=med_data,
+            )
             saved_medications.append(MedicationResponse.model_validate(db_med))
             medication_names.append(med_data.name)
-            if rx_id:
-                rxnorm_ids.append(rx_id)
 
-        all_meds_in_plan = get_medications_by_plan_id(self.db, plan_id)
-        all_rxnorm_ids_in_plan = [m.rxnorm_id for m in all_meds_in_plan if m.rxnorm_id]
-        
-        interactions = await self.interaction_checker.check_drug_interaction(
-            list(set(all_rxnorm_ids_in_plan))
-        )
+        interactions = await self.interaction_checker.check_drug_interaction(medication_names)
         
         self.db.commit() 
         
@@ -114,19 +204,17 @@ class MedicationService:
             interactions=interactions
         )
     
-    async def validate_drug(self, drug_name):
+    async def validate_drug(self, drug_name: str):
         try:
-            rx_id = await self.interaction_checker.get_rxnorm_id(drug_name)
-            is_valid  = rx_id is not None
+            is_valid = await self.interaction_checker.validate_drug_name(drug_name)
+            
             return DrugValidationResponse(
                 drug_name=drug_name,
                 is_valid=is_valid,
-                rxnorm_id=rx_id
             )
         except Exception as e:
             logging.error(f"Drug validation failed due to API error: {e}")
             return DrugValidationResponse(
                 drug_name=drug_name,
                 is_valid=False,
-                rxnorm_id=None
             )

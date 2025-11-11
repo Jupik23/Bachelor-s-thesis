@@ -34,4 +34,3 @@ class DrugValidationRequest(BaseModel):
 
 class DrugValidationResponse(DrugValidationRequest):
     is_valid: bool = False
-    rxnorm_id: Optional[str] = None

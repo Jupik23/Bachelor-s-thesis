@@ -14,6 +14,5 @@ class Medication(Base):
     taken = Column(Boolean, default=False)
     with_meal_relation = Column(SAEnum(WithMealRelation), default=WithMealRelation.empty_stomach) 
     description = Column(String, nullable=True)
-    rxnorm_id = Column(String, nullable=True)
 
     plan = relationship("Plan", back_populates="medications")

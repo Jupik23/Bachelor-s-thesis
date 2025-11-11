@@ -4,14 +4,13 @@ from app.models.medication import Medication
 from app.schemas.medication import MedicationCreate, MedicationStatusUpdate
 from typing import Optional
 
-def create_medication(db: Session, plan_id: int, medication_data: MedicationCreate, rxnorm_id: Optional[str]):
+def create_medication(db: Session, plan_id: int, medication_data: MedicationCreate):
     new_med = Medication(
         plan_id=plan_id,
         time=medication_data.time,
         name=medication_data.name,
         with_meal_relation=medication_data.with_meal_relation,
         description=medication_data.description,
-        rxnorm_id=rxnorm_id
     )
     db.add(new_med)
     db.flush()
