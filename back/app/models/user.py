@@ -24,3 +24,14 @@ class User(Base):
         back_populates="creator",
         foreign_keys="[Plan.created_by]"
     )
+    caring_for = relationship(
+        "CareRelation", 
+        foreign_keys="[CareRelation.carer_id]", 
+        back_populates="carer"
+    )
+    cared_by = relationship(
+        "CareRelation", 
+        foreign_keys="[CareRelation.patient_id]", 
+        back_populates="patient",
+        uselist=False 
+    )

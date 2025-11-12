@@ -8,6 +8,7 @@ from app.api.routes.preference import router as preference
 from app.api.routes.meal_sugest import router as meal_sugest
 from app.api.routes.medication import router as med
 from app.api.routes.recipies import router as recipes_router
+from app.api.routes.dependant import router as dependant_router
 import uvicorn
 import sys
 import os
@@ -32,6 +33,7 @@ app.include_router(intolerance)
 app.include_router(meal_sugest)
 app.include_router(med)
 app.include_router(recipes_router)
+app.include_router(dependant_router)
 
 #+local
 if __name__=="__main__":

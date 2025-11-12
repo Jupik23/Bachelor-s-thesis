@@ -13,6 +13,9 @@ def create_user(db: Session, acount_data: UserCreate):
 def get_user_info_by_id(db: Session, account_id: int):
     return db.query(User).filter(User.id == account_id).first()
 
+def get_user_info_by_login(db: Session, account_login: str):
+    return db.query(User).filter(User.login == account_login).first()
+
 def update_user_password(db: Session, account_id: int, new_password):
     user = get_user_auth_by_id(db, account_id)
     if user:
