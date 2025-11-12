@@ -131,9 +131,9 @@ const addTag = async (newTag) => {
   isLoading.value = true;
   failureMessage.value = "";
   try{
-    const validationResponse = await api.post("api/v1/plans/validate", {drug_name: newTag});
+    const validationResponse = await api.post("api/v1/medications/validate", {drug_name: newTag});
     if (validationResponse.data.is_valid){
-      medicaments.value.push(newTag)
+      medicaments.value.push(normalizedTag)
       successMessage.value = "Medication validated and added"
     }else{
       failureMessage.value = "Medication could not be validated and added"
@@ -161,9 +161,11 @@ const populateForm = (data) => {
   selectedPreferences.value = preferences.value.filter(p=> 
     data.diet_preferences?.includes(p.preference)
   )
-  medicaments.value = data.medicament_usage.split(',')
-                                            .map(med => med.trim())
-                                            .filter(med => med.length > 0);
+  medicaments.value = data.medicament_usage 
+                     ? data.medicament_usage.split(',')
+                         .map(med => med.trim())
+                         .filter(med => med.length > 0)
+                     : [];
   age.value = data.age;
   gender.value = sexOptions.value.find(o=>o.value===data.gender) || null;
   selectedActivityLevel.value = activityLevels.value.find(o => o.value === data.activity_level) || null;

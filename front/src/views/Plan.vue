@@ -44,8 +44,14 @@
                         </div>
                     </li>
                 </ul>
-                <p v-if="!planData.meals.length" class="no-data">No meals found for today.</p>
-            </Card>
+
+                <div v-if="!planData.meals.length" class="no-data-container">
+                    <p class="no-data">No meals found for today.</p>
+                    <button @click="generatePlan" :disabled="isLoading" class="btn-primary">
+                        Generate Today's Plan
+                    </button>
+                </div>
+                </Card>
             <Card title="Medications">
                 <ul v-if="planData.medications && planData.medications.length" class="item-list simple-list">
                     <li v-for="med in planData.medications" :key="med.id" class="list-item simple-item med-item" :class="{ 'is-taken': med.taken }">
@@ -134,7 +140,6 @@ const loadInitialData = async () => {
     medicationNamesFromHealthForm.value = [];
     try {
         const planResponse = await api.get("api/v1/meals/today");
-        console.log(test)
         planData.value = planResponse.data;
     } catch (e) {
         console.error("Error loading initial data: ", e);
@@ -167,7 +172,7 @@ async function updateMedicationStatus(medication) {
         taken: medication.taken
     };
     try {
-        await api.patch(`/api/v1/plans/${medication.id}/medication`, payload);
+        await api.patch(`/api/v1/medications/${medication.id}/medication`, payload);
     } catch (e) {
         console.error("Failed to update medication status:", e);
         error.value = "Failed to update medication. Please try again.";
@@ -234,6 +239,18 @@ onMounted(() => {
     color: var(--text-color-subtle);
     font-style: italic;
     margin-top: 0.5rem;
+}
+
+.no-data-container {
+  text-align: center;
+  padding: 1rem 0;
+}
+.no-data-container .btn-primary {
+  margin-top: 1rem;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .meal-type.breakfast, .meal-type.second_breakfast { background-color: #4CAF50; } 
