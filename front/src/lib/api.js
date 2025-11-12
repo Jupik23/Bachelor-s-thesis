@@ -39,4 +39,16 @@ export const healtFormApi = {
     create: (data) => api.post('api/v1/health_form/create/', data)
 }
 
+export const getMyDependents = () => {
+  return api.get('api/v1/dependents/my');
+};
+
+export const createDependent = (dependentData) => {
+  return api.post('api/v1/dependents/create', dependentData);
+};
+
+export const getDependentPlan = (dependentId) => {
+  return apiClient.get(`/dependents/${dependentId}/plan/today`);
+};
+
 export default api;

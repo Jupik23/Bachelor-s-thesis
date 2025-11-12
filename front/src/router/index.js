@@ -49,7 +49,12 @@ const routes = [
     {path: "/shopping-list",
         name: "shopping-list",
         component: () => import("@/views/ShoppingList.vue")
-    }
+    },
+    {
+        path: '/dependents',
+        name: 'ManageDependents',
+        component: () => import('@/views/ManageDependents.vue'),
+    }   
 ]
 
 const router = createRouter({
