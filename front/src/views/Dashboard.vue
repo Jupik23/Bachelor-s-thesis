@@ -6,8 +6,20 @@
                     <p id="date">Today's overview: {{today}}</p>
                     <RouterLink to="/health-form">Change Health metrics</RouterLink>
                 </div>
-                <Stats :stats="stats"></Stats>
-                <TodayInfo :cardsData="cards_data"></TodayInfo>
+                <div v-if="isLoading" class="loading-state">
+                    <p>Loading your dashboard...</p>
+                    <div class="spinner"></div>
+                </div>
+                <div v-else-if="error" class="error-state">
+                    <p>{{ error }}</p>
+                    <p>Could not load dashboard data. Please try again later.</p>
+                    <RouterLink to="/health-form" class="btn-primary">Check Health Metrics</RouterLink>
+                </div>
+                <div v-else class="dashboard-content">
+                    <Stats :stats="stats"></Stats>
+                    <TodayInfo :cardsData="cards_data"></TodayInfo>
+                </div>
+                
             </div> 
     </div>
 
@@ -17,6 +29,8 @@ import {onMounted, ref, renderSlot} from "vue"
 import Stats from "@/components/dashboard/Stats.vue";
 import TodayInfo from "@/components/dashboard/TodayInfo.vue";
 import api from "@/lib/api.js"
+const isLoading = ref(true);
+const error = ref(null)
 const today = new Date().toDateString();
 const formatTime = (inputTime) => {
     if (!inputTime) return '';
@@ -60,6 +74,8 @@ const stats = ref([
     },
 ])
 const getStats = async () => {
+    isLoading.value = true;
+    error.value = null;
     try{
         const response = await api.get("/api/v1/meals/today");
         const planData = response.data;
@@ -105,6 +121,9 @@ const getStats = async () => {
         }
     }catch(error){
         console.log(error)
+        error.value = e.response?.data?.detail || "Could not load dashboard data.";
+    }finally{
+        isLoading.value = false;
     }
 }
 onMounted(() => {
@@ -116,6 +135,7 @@ onMounted(() => {
 .date-change-log {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 1rem;
   padding: 1rem;
   background-color: var(--white-color);
