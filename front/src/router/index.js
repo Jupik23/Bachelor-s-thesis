@@ -54,7 +54,13 @@ const routes = [
         path: '/dependents',
         name: 'ManageDependents',
         component: () => import('@/views/ManageDependents.vue'),
-    }   
+    },
+    {
+        path: '/dependents/:id/plan', 
+        name: 'DependentPlan',
+        component: () => import('@/views/DependentPlan.vue'),
+        meta: { requiresAuth: true } 
+    }
 ]
 
 const router = createRouter({

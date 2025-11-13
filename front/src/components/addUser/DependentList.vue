@@ -33,7 +33,7 @@ export default {
   },
   methods: {
     managePlan(dependentId) {
-      // this.$router.push(`/manage/${dependentId}/plan`);
+    this.$router.push(`/dependents/${dependentId}/plan`);
     }
   }
 }
