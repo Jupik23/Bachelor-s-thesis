@@ -7,7 +7,7 @@ from app.api.routes.intolerance import router as intolerance
 from app.api.routes.preference import router as preference
 from app.api.routes.meal_sugest import router as meal_sugest
 from app.api.routes.medication import router as med
-from app.api.routes.recipies import router as recipes_router
+from app.api.routes.recipes import router as recipes_router
 from app.api.routes.dependant import router as dependant_router
 import uvicorn
 import sys

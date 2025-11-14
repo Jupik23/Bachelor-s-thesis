@@ -1,7 +1,7 @@
 import os, httpx, asyncio, logging
 from typing import Dict, Any
 from app.schemas.health_form import HealthFormCreate
-from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse, Recipe, ComplexSearchResponse, RecipeInformation
+from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse, Recipe, ComplexSearchResponse, RecipeResponse
 from app.services.calculator import CalculatorService
 
 class Spoonacular():
@@ -122,6 +122,6 @@ class Spoonacular():
         data = await self._make_request(endpoint, params=params)
         
         if data:
-            return RecipeInformation.model_validate(data)
+            return RecipeResponse.model_validate(data)
         else:
             return None

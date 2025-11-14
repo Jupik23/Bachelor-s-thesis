@@ -21,15 +21,14 @@ class ComplexSearchResponse(BaseModel):
     number: int
     totalResults: int
 
-class RecipeInformation(BaseModel):
+class RecipeResponse(BaseModel):
     id: int
     title: str
+    summary: Optional[str] = None
+    instructions: Optional[str] = None
     readyInMinutes: Optional[int] = None
-    servings: Optional[int] = None
-    sourceUrl: Optional[str] = None
-    image: Optional[str] = None
-    extendedIngredients: Optional[List[Ingredient]] = []
-    
+    # class Config:
+    #     from_attributes = True
 class Nutrients(BaseModel):
     calories: float
     protein: float

@@ -16,7 +16,6 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
-// Importujemy "głupi" komponent
 import PlanDisplay from '@/components/PlanDisplay/Plan.vue'
 import api from '@/lib/api';
 
@@ -25,11 +24,9 @@ const isLoading = ref(false);
 const error = ref(null);
 const planData = ref(null);
 
-// Funkcja "mądra": wie, jak wygenerować plan DLA MNIE
 const generatePlan = async () => {
     isLoading.value = true;
     try {
-        // Wywołuje endpoint dla zalogowanego użytkownika
         const response = await api.post("api/v1/meals/generate"); 
         planData.value = response.data;
     } catch (e) {
@@ -39,14 +36,11 @@ const generatePlan = async () => {
         isLoading.value = false;
     }
 }
-
-// Funkcja "mądra": wie, jak pobrać plan DLA MNIE
 const loadInitialData = async () => {
     isLoading.value = true;
     error.value = null;
     planData.value = null;
     try {
-        // Wywołuje endpoint dla zalogowanego użytkownika
         const planResponse = await api.get("api/v1/meals/today");
         planData.value = planResponse.data;
     } catch (e) {
@@ -57,7 +51,6 @@ const loadInitialData = async () => {
     }
 };
 
-// Funkcja "mądra": wie, jak zaktualizować MÓJ posiłek
 async function updateMealStatus(meal) {
     error.value = null;
     const payload = {
@@ -67,7 +60,6 @@ async function updateMealStatus(meal) {
 
     try {
         const response = await api.patch(`/api/v1/meals/${meal.id}`, payload);
-        // Aktualizujemy dane lokalnie, aby komponent się odświeżył
         const mealIndex = planData.value.meals.findIndex(m => m.id === meal.id);
         if (mealIndex !== -1) {
             planData.value.meals[mealIndex] = response.data;
@@ -78,7 +70,6 @@ async function updateMealStatus(meal) {
     }
 }
 
-// Funkcja "mądra": wie, jak zaktualizować MÓJ lek
 async function updateMedicationStatus(medication) {
     error.value = null;
     const payload = {
@@ -98,7 +89,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Tutaj możesz dodać style specyficzne dla tego widoku, jeśli chcesz */
 h1 {
     margin-bottom: 2rem;
     color: var(--text-color-dark);

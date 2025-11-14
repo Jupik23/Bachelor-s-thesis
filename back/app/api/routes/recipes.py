@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.services.spoonacular import Spoonacular
-from app.schemas.spoonacular import ComplexSearchResponse
+from app.schemas.spoonacular import ComplexSearchResponse, RecipeResponse
 from app.schemas.health_form import HealthFormCreate 
 from app.services.health_form import HealthFormService 
+from app.services.spoonacular import Spoonacular 
 from app.utils.jwt import get_current_user 
 from app.models.user import User 
 from typing import List, Optional
@@ -44,4 +45,18 @@ async def search_recipes_endpoint(
         raise HTTPException(
             status_code=503, 
             detail=f"Błąd podczas wyszukiwania przepisów: {e}"
+        )
+    
+@router.get("/{recipe_id}", response_model=RecipeResponse)
+async def get_recipe_info(recipe_id: int, db: Session = Depends(get_database), current_user: dict = Depends(get_current_user)):
+    service = Spoonacular()
+    try:
+        details = await service.get_recipe_information(recipe_id=recipe_id)
+        return details
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )

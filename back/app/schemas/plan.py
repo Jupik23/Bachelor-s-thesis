@@ -8,6 +8,7 @@ class MealCreate(BaseModel):
     meal_type: MealType
     description: Optional[str] = None
     time: time
+    spoonacular_recipe_id: int
 class MealResponse(MealCreate):
     id: int 
     eaten: bool
