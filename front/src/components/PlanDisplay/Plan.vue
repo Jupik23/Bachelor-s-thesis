@@ -18,7 +18,7 @@
                         <span class="meal-time">{{ formatTime(meal.time) }}</span>
                         <div class="meal-details">
                             <strong :class="['meal-type', meal.meal_type]">{{ meal.meal_type.toUpperCase() }}</strong>
-                            <p class="meal-desc recipe-link" @click="showRecipeDetails(meal)">
+                            <p class="meal-desc recipe-link" @click="$emit('show-recipe', meal)">
                                 {{ meal.description.split('.')[0] }}
                                 <span class="recipe-prompt">(Click for recipe)</span>
                             </p>
@@ -47,13 +47,21 @@
                                     {{ meal.eaten ? 'Eaten' : 'Mark as eaten' }}
                                 </label>
                             </div>
+                            <div v-if="!isReadOnly" class="edit-action-wrapper">
+                                <button 
+                                    class="btn-edit" 
+                                    @click="$emit('edit-meal', meal)"
+                                >
+                                    Edit Meal
+                                </button>
+                            </div>
                         </div>
                     </li>
                 </ul>
 
                 <div v-if="!planData.meals || !planData.meals.length" class="no-data-container">
                     <p class="no-data">No meals found for today.</p>
-                    <button @click="$emit('generate-plan')" :disabled="isLoading" class="btn-primary">
+                    <button @click="$emit('generate-plan')" :disabled="isLoading" class="btn btn-primary">
                         Generate Today's Plan
                     </button>
                 </div>
@@ -65,22 +73,34 @@
                         <div class="med-details">
                                 <strong>{{ med.name }}</strong> ({{ formatTime(med.time) }})
                                 <p>{{ med.description }}</p>
+                        </div>
+                        <div class="med-actions-group">
+                            <div class="checkbox-wrapper">
+                                <input 
+                                    type="checkbox" 
+                                    :id="'med-' + med.id"
+                                    :checked="med.taken"
+                                    @change="$emit('update-medication', { ...med, taken: $event.target.checked })"
+                                    :disabled="isReadOnly"
+                                />
+                                <label :for="'med-' + med.id">{{ med.taken ? 'Taken' : 'Mark as taken' }}</label>
                             </div>
-                            <input 
-                                type="checkbox" 
-                                :id="'med-' + med.id"
-                                :checked="med.taken"
-                                @change="$emit('update-medication', { ...med, taken: $event.target.checked })"
-                                :disabled="isReadOnly"
-                            />
-                            <label :for="'med-' + med.id">{{ med.taken ? 'Taken' : 'Mark as taken' }}</label>
-                        </li>
+                            <div class="med-actions" v-if="!isReadOnly">
+                                <button 
+                                    class="btn-edit" 
+                                    @click="$emit('edit-medication', med)"
+                                >
+                                    Edit Med
+                                </button>
+                            </div>
+                        </div>
+                    </li>
                 </ul>
                 <p v-else class="no-data">No medications listed in this plan.</p>
             </Card>
 
             <Card title="Interaction Alerts">
-                <ul v-if="interactionAlerts.length" class="item-list alert-list">
+                 <ul v-if="interactionAlerts.length" class="item-list alert-list">
                      <li v-for="(alert, index) in interactionAlerts" :key="index" :class="['list-item alert-item', alert.severity.toLowerCase()]">
                         <div class="item-details">
                             <strong class="item-type alert-severity">{{ alert.severity }}</strong>
@@ -94,74 +114,13 @@
                 <p v-else class="no-data alert-success">No significant drug interactions detected.</p>
             </Card>
         </div>
-        <div v-if="isModalVisible" class="recipe-modal-overlay" @click.self="closeModal">
-    <div class="recipe-modal-content">
-        <button class="close-button" @click="closeModal">&times;</button>
         
-        <div v-if="isRecipeLoading" class="modal-loading">
-            <div class="spinner"></div>
-            <p>Loading recipe...</p>
         </div>
-
-        <div v-else-if="recipeError" class="modal-error">
-            <h3>Error</h3>
-            <p>{{ recipeError }}</p>
-        </div>
-
-        <div v-else-if="selectedRecipeDetails" class="recipe-details">
-            <h2>{{ selectedRecipeDetails.title }}</h2>
-            <p v-if="selectedRecipeDetails.readyInMinutes">
-                Ready in: <strong>{{ selectedRecipeDetails.readyInMinutes }} minutes</strong>
-            </p>
-            
-            <h3>Summary</h3>
-            <div class="recipe-summary" v-html="selectedRecipeDetails.summary"></div>
-            
-            <h3 v-if="selectedRecipeDetails.instructions">Instructions</h3>
-            <div class="recipe-instructions" v-html="selectedRecipeDetails.instructions"></div>
-                </div>
-            </div>
-        </div>
-    </div>
 </template> 
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import Card from '@/components/Card.vue';
-import {getRecipeDetails} from '@/lib/api.js'
-
-const isModalVisible = ref(false);
-const isRecipeLoading = ref(false);
-const selectedRecipeDetails = ref(null);
-const recipeError = ref(null);
-
-const showRecipeDetails = async (meal) => {
-  if (!meal.spoonacular_recipe_id) {
-    recipeError.value = "No recipe ID available for this meal.";
-    selectedRecipeDetails.value = { title: meal.description, instructions: "Details not available." };
-    isModalVisible.value = true;
-    return;
-  }
-
-  isModalVisible.value = true;
-  isRecipeLoading.value = true;
-  recipeError.value = null;
-  selectedRecipeDetails.value = null;
-
-  try {
-    const response = await getRecipeDetails(meal.spoonacular_recipe_id);
-    selectedRecipeDetails.value = response.data;
-  } catch (e) {
-    console.error("Failed to fetch recipe details:", e);
-    recipeError.value = e.response?.data?.detail || "Could not load recipe details.";
-  } finally {
-    isRecipeLoading.value = false;
-  }
-};
-
-const closeModal = () => {
-  isModalVisible.value = false;
-};
 
 const props = defineProps({
     planData: {
@@ -173,7 +132,7 @@ const props = defineProps({
         default: false
     },
     error: {
-        type: [String, Boolean],
+        type: [String, Boolean, Object],
         default: false
     },
     isReadOnly: {
@@ -181,7 +140,16 @@ const props = defineProps({
         default: false 
     }
 });
-const emit = defineEmits(['update-meal', 'update-medication', 'generate-plan']);
+
+const emit = defineEmits([
+    'update-meal', 
+    'update-medication', 
+    'generate-plan', 
+    'edit-medication', 
+    'show-recipe',     
+    'edit-meal'        
+]);
+
 const formatTime = (inputTime) => {
     if (!inputTime) return ''
     try{
@@ -191,16 +159,43 @@ const formatTime = (inputTime) => {
         return inputTime.substring(0, 5); 
     }
 };
+
 const sortedMeals = computed(() => {
     if (!props.planData || !props.planData.meals) return []
     return [...props.planData.meals].sort((a, b) => a.time.localeCompare(b.time));
 });
+
 const interactionAlerts = computed(() => {
     return props.planData?.interactions || []; 
 });
 </script>
 
 <style scoped>
+.med-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.edit-action-wrapper {
+    margin-top: 0.5rem; 
+}
+
+.btn-edit {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  background-color: var(--secondary-color);
+  border: 1px solid var(--secondary-color);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-edit:hover {
+  background-color: var(--secondary-color-hover);
+  color: var(--primary-color-hover);
+}
 .loading-state,
 .error-state {
   padding: 3rem 1.5rem;
@@ -322,7 +317,7 @@ const interactionAlerts = computed(() => {
 
 .med-item {
   display: flex;
-  justify-content: space-between;
+  justify-content: center; 
   align-items: center;
   gap: 1rem;
 }
@@ -491,88 +486,4 @@ const interactionAlerts = computed(() => {
   color: var(--text-color-subtle);
   font-weight: 400;
 }
-
-.recipe-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.recipe-modal-content {
-  background-color: var(--white-color);
-  padding: 2rem;
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-md);
-  width: 90%;
-  max-width: 700px;
-  max-height: 85vh;
-  overflow-y: auto;
-  position: relative;
-}
-
-.close-button {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-color-subtle);
-  background: none;
-  border: none;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-}
-.close-button:hover {
-  color: var(--text-color-dark);
-}
-
-.modal-loading,
-.modal-error {
-  text-align: center;
-  padding: 3rem 1rem;
-}
-
-.modal-error h3 {
-  color: var(--danger-color);
-}
-
-.recipe-details h2 {
-  margin-top: 0;
-  color: var(--primary-color);
-}
-
-.recipe-details h3 {
-  border-bottom: 2px solid var(--secondary-color);
-  padding-bottom: 0.5rem;
-  margin-top: 1.5rem;
-}
-
-.recipe-summary,
-.recipe-instructions {
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--text-color-light);
-}
-.recipe-instructions :deep(ol),
-.recipe-instructions :deep(ul) {
-  padding-left: 20px;
-}
-.recipe-instructions :deep(li) {
-  margin-bottom: 0.75rem;
-}
-.recipe-summary :deep(a) {
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-
-
 </style>

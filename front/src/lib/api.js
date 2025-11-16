@@ -54,4 +54,8 @@ export const getDependentPlan = (dependentId) => {
 export const getRecipeDetails = (recipeId) => {
   return api.get(`/api/v1/recipes/${recipeId}`);
 };
+
+export const updateMedInfo = (med_id, data) => {
+  return api.patch(`/api/v1/medications/${med_id}`, data);
+}
 export default api;

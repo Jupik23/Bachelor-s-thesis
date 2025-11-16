@@ -1,11 +1,5 @@
 <template>
     <div>
-        <h1>Today's plan: {{ today }}</h1>
-        <div class="page-actions">
-            <RouterLink to="/shopping-list" class="btn btn-secondary">
-                🛒 Get Shopping List
-            </RouterLink>
-        </div>
         <PlanDisplay
             :planData="planData"
             :isLoading="isLoading"
