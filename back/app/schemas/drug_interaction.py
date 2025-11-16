@@ -10,7 +10,12 @@ class DrugInteractionBase(BaseModel):
 class DrugInteractionCreate(DrugInteractionBase):
     pass
 
-class DrugInteractionResponse(DrugInteractionBase):
+class DrugInteractionResponse(BaseModel):
+    medication_1: str
+    medication_2: str
+    description: str
+    severity: str
+class DrugInDB(DrugInteractionBase):
     id: int
     class Config:
         from_atributes = True

@@ -1,16 +1,18 @@
 import httpx
 import logging
 from sqlalchemy.orm import Session
-from app.schemas.medication import (MedicationCreate, 
-                                    DrugInteractionResponse, MedicationResponse,
+from app.schemas.medication import (MedicationCreate, MedicationResponse,
                                     MedicationListResponse, DrugValidationResponse)
+from app.schemas.drug_interaction import (DrugInteractionCreate, DrugInteractionResponse)
 from app.crud.medication import create_medication, get_medications_by_plan_id
+from app.crud.drug_interaction import get_interaction, create_new_drug_interaction
 from app.database.database import get_database
 from typing import List, Dict, Any, Optional
 import os
 
 class DrugInteractionService:
-    def __init__(self, fda_api_key: Optional[str]):
+    def __init__(self, db: Session, fda_api_key: Optional[str]):
+        self.db = db
         self.openfda_base = "https://api.fda.gov/drug"
         self.api_key = fda_api_key
 
@@ -125,22 +127,20 @@ class DrugInteractionService:
                 pair_key = tuple(sorted([drug1.lower(), drug2.lower()]))
                 if pair_key in checked_pairs:
                     continue
-                
                 checked_pairs.add(pair_key)
-                interaction_desc_1 = await self._check_interaction_in_label(drug1, drug2)
-                interaction_desc_2 = await self._check_interaction_in_label(drug2, drug1)
-                if interaction_desc_1 or interaction_desc_2:
-                    description = interaction_desc_1 or interaction_desc_2
-                    
-                    severity = self._determine_severity(description)
-                    
+                db_interaction =  get_interaction(db=self.db, drug1=drug1, drug2=drug2)
+                if not db_interaction:
+                    logging.warning(f"Cach miss for drug interaction {drug1} and {drug2}")
+                    api_result = await self._fetch_interaction_from_api(drug1=drug1, drug2=drug2)
+                    db_interaction = create_new_drug_interaction(db=self.db, interaction_data=api_result)
+                if db_interaction and db_interaction.description:
                     interactions_list.append(DrugInteractionResponse(
-                        medication_1=drug1,
-                        medication_2=drug2,
-                        severity=severity,
-                        description=description or 'Możliwa interakcja między lekami. Skonsultuj się z lekarzem.'
-                    ))
-        
+                            medication_1=db_interaction.drug1,
+                            medication_2=db_interaction.drug2,
+                            severity=db_interaction.severity,
+                            description=db_interaction.description
+                        ))
+
         return interactions_list
     
     def _determine_severity(self, description: str) -> str:
@@ -169,13 +169,33 @@ class DrugInteractionService:
                 return "Moderate"
         
         return "Low"
+    
+    async def _fetch_interaction_from_api(self, drug1: str, drug2: str):
+        interaction_desc_1 = await self._check_interaction_in_label(drug1, drug2)
+        interaction_desc_2 = await self._check_interaction_in_label(drug2, drug1)
 
+        description = interaction_desc_1 or interaction_desc_2
 
+        if description:
+            severity = self._determine_severity(description=description)
+            return DrugInteractionCreate(
+                drug1=drug1,
+                drug2=drug2, 
+                severity=severity,
+                description=description
+            )
+        else:
+            return DrugInteractionCreate(
+                drug1=drug1,
+                drug2=drug2, 
+                severity="None",
+                description=None
+            )
 class MedicationService:
     def __init__(self, db: Session):
         self.db = db
         fda_key = os.getenv("OPEN_FDA_API_KEY")
-        self.interaction_checker = DrugInteractionService(fda_api_key=fda_key)
+        self.interaction_checker = DrugInteractionService(db=self.db,fda_api_key=fda_key)
 
     async def add_medications_to_plan(
             self, 
@@ -195,7 +215,7 @@ class MedicationService:
             saved_medications.append(MedicationResponse.model_validate(db_med))
             medication_names.append(med_data.name)
 
-        interactions = await self.interaction_checker.check_drug_interaction(medication_names)
+        interactions = await self.interaction_checker.check_drug_interaction(drug_names=medication_names)
         
         self.db.commit() 
         

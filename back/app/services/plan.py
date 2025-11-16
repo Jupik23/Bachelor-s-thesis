@@ -38,7 +38,7 @@ class PlanCreationService:
         self.db = db
         self.spoonacular_service = Spoonacular()
         fda_key = os.getenv("OPEN_FDA_API_KEY")
-        self.interaction_checker = DrugInteractionService(fda_api_key=fda_key)
+        self.interaction_checker = DrugInteractionService(db =self.db, fda_api_key=fda_key)
         self.health_form_service = HealthFormService(db)
 
     async def generate_and_save_plan(self, created_by_id, user_id, time_frame: str = "day"):

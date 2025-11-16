@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import time
 from app.models.common import WithMealRelation
+from app.schemas.drug_interaction import DrugInteractionResponse
 
 class MedicationCreate(BaseModel):
     name: str
@@ -21,12 +22,6 @@ class MedicationDashboardUpdate(BaseModel):
 
 class MedicationStatusUpdate(BaseModel):
     taken: bool
-
-class DrugInteractionResponse(BaseModel):
-    medication_1: str
-    medication_2: str
-    severity: str
-    description: str
 
 class MedicationListResponse(BaseModel):
     medications: List[MedicationResponse]
