@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.medication import Medication
-from app.schemas.medication import MedicationCreate, MedicationStatusUpdate
+from app.schemas.medication import MedicationCreate, MedicationStatusUpdate, MedicationDashboardUpdate
 from typing import Optional
 
 def create_medication(db: Session, plan_id: int, medication_data: MedicationCreate):
@@ -33,3 +33,14 @@ def update_medication_status(db: Session, med_id:int, updated_data: MedicationSt
     db.commit()
     db.refresh(db_med)
     return db_med
+
+def update_medication_dashboard(db: Session, med_id: int, update_data: MedicationDashboardUpdate):
+    medication_to_change = get_medication_by_id(db=db, med_id=med_id)
+    if not medication_to_change:
+        return None
+    update_dict = update_data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(medication_to_change, key, value)
+    db.commit()
+    db.refresh(medication_to_change)
+    return medication_to_change

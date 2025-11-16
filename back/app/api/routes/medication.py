@@ -5,7 +5,8 @@ from app.crud.medication import *
 from app.database.database import get_database
 from app.schemas.medication import (MedicationCreate, MedicationListResponse,
                                     DrugValidationRequest, DrugValidationResponse,
-                                    MedicationResponse, MedicationStatusUpdate)
+                                    MedicationResponse, MedicationStatusUpdate,
+                                    MedicationDashboardUpdate)
 from app.services.medication_service import MedicationService
 from typing import List
 
@@ -49,6 +50,32 @@ async def add_medications_to_plan(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error while adding meds: {e}"
         )
+
+@router.patch("/{medication_id}", response_model=MedicationResponse)
+async def edit_medication_details(
+    medication_id: int,
+    medication_data: MedicationDashboardUpdate,
+    db: Session = Depends(get_database),
+    current_user: dict = Depends(get_current_user)
+):
+
+    db_med = get_medication_by_id(db, medication_id)
+
+    if not db_med:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Medication not found"
+        )
+    if db_med.plan.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to edit this medication"
+        )
+
+    updated_med = update_medication_dashboard(
+        db, med_id=medication_id, update_data=medication_data
+    )
+    return updated_med
 
 @router.patch("/{medication_id}/medication", response_model=MedicationResponse)
 async def update_medication_status_endpoint(

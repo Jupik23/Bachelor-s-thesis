@@ -15,6 +15,9 @@ class MedicationResponse(MedicationCreate):
 
     class Config:
         from_attributes = True
+class MedicationDashboardUpdate(BaseModel):
+    time: Optional[time]
+    with_meal_relation: Optional[WithMealRelation]
 
 class MedicationStatusUpdate(BaseModel):
     taken: bool
