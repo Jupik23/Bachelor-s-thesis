@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.medication import Medication
+from app.models.common import WithMealRelation
 from app.schemas.medication import MedicationCreate, MedicationStatusUpdate, MedicationDashboardUpdate
 from typing import Optional
 
@@ -39,6 +40,16 @@ def update_medication_dashboard(db: Session, med_id: int, update_data: Medicatio
     if not medication_to_change:
         return None
     update_dict = update_data.model_dump(exclude_unset=True)
+    if "with_meal_relation" in update_dict:
+        new_relation_enum = update_dict["with_meal_relation"]
+        relation_map = {
+            WithMealRelation.empty_stomach: "on an empty stomach",
+            WithMealRelation.before: "before meal",
+            WithMealRelation.during: "during meal",
+            WithMealRelation.after: "after meal",
+        }
+        new_desc_text = relation_map.get(new_relation_enum, str(new_relation_enum.value).replace('_', ' '))
+        medication_to_change.description = f"Take: {new_desc_text}. Please verify dose."
     for key, value in update_dict.items():
         setattr(medication_to_change, key, value)
     db.commit()

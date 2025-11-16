@@ -104,11 +104,19 @@ class PlanCreationService:
             
             if medication_names_from_form:
                 for med_name in medication_names_from_form:
+                    default_relation = WithMealRelation.empty_stomach
+                    relation_map = {
+                        WithMealRelation.empty_stomach: "on an empty stomach",
+                        WithMealRelation.before: "before meal",
+                        WithMealRelation.during: "during meal",
+                        WithMealRelation.after: "after meal",
+                    }
+                    default_desc_text = relation_map.get(default_relation, "as directed")
                     med_data = MedicationCreate(
                         name=med_name,
                         time=time(8, 0),
-                        with_meal_relation=WithMealRelation.empty_stomach,
-                        description="Proszę uzupełnić dawkę i zweryfikować godzinę."
+                        with_meal_relation=default_relation,
+                        description=f"Take: {default_desc_text}. Please verify time/dose."
                     )
                     
                     db_med = create_medication(
