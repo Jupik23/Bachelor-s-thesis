@@ -59,7 +59,7 @@ import { onMounted, ref } from 'vue';
 import PlanDisplay from '@/components/PlanDisplay/Plan.vue'
 import EditMedModal from '@/components/EditMedModal.vue';
 import EditMealModal from '@/components/EditMealModal.vue';
-import api, { updateMedInfo } from '@/lib/api';
+import api, { updateMedInfo, getRecipeDetails } from '@/lib/api';
 
 const today = new Date().toDateString();
 const isLoading = ref(false);

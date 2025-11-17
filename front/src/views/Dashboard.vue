@@ -28,7 +28,7 @@
 import {onMounted, ref, renderSlot} from "vue"
 import Stats from "@/components/dashboard/Stats.vue";
 import TodayInfo from "@/components/dashboard/TodayInfo.vue";
-import api from "@/lib/api.js"
+import api, {getMyNotification} from "@/lib/api.js"
 const isLoading = ref(true);
 const error = ref(null)
 const today = new Date().toDateString();
@@ -54,6 +54,10 @@ const cards_data = ref([
         title: "Interaction alerts",
         content: []
     },
+    {
+        title: "Notifications",
+        content: [],
+    }
 ])
 
 const stats = ref([
@@ -77,8 +81,12 @@ const getStats = async () => {
     isLoading.value = true;
     error.value = null;
     try{
-        const response = await api.get("/api/v1/meals/today");
-        const planData = response.data;
+        const [planResponse, notificationsResponse] = await Promise.all([
+            api.get("/api/v1/meals/today"),
+            getMyNotification() 
+        ]);
+        const planData = planResponse.data;
+        const notifications = notificationsResponse.data; 
         if (planData.medications && planData.medications.length > 0) {
             const takenCount = planData.medications.filter(med => med.taken).length;
             const totalCount = planData.medications.length;
@@ -119,8 +127,14 @@ const getStats = async () => {
         } else {
             cards_data.value[2].content = [{ id: 1, text: "No significant interactions found." }];
         }
-    }catch(error){
-        console.log(error)
+        if (notifications && notifications.length > 0) {
+            cards_data.value[3].content = notifications.map(n => ({
+                id: n.id,
+                text: `[${formatTime(n.sent_at.split('T')[1])}] ${n.message}`
+            }));} else {
+        cards_data.value[3].content = [{ id: 'notify-empty', text: "No new notifications." }];
+        }}catch(e){
+        console.log(e)
         error.value = e.response?.data?.detail || "Could not load dashboard data.";
     }finally{
         isLoading.value = false;

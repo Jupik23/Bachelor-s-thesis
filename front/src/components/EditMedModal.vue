@@ -20,7 +20,7 @@
             <label for="med-relation">Relation to Meal:</label>
             <select 
               id="med-relation" 
-              v-model="formData.with_meal_realation" 
+              v-model="formData.with_meal_relation" 
               class="form-input"
             >
               <option value="empty_stomach">Empty Stomach</option>
@@ -52,11 +52,13 @@ const emit = defineEmits(['close', 'save']);
 const formData = ref({
   time: '',
   with_meal_relation: 'empty_stomach', 
+  description: '',
 });
 watchEffect(() => {
   if (props.medication) {
     formData.value.time = props.medication.time;
-    formData.value.with_meal_realation = props.medication.with_meal_relation; 
+    formData.value.with_meal_relation = props.medication.with_meal_relation; 
+    formData.value.description = props.medication.description;
   }
 });
 const saveChanges = () => {

@@ -58,4 +58,8 @@ export const getRecipeDetails = (recipeId) => {
 export const updateMedInfo = (med_id, data) => {
   return api.patch(`/api/v1/medications/${med_id}`, data);
 }
+
+export const getMyNotification = () => {
+  return api.get(`/api/v1/notifications/me`);
+}
 export default api;
