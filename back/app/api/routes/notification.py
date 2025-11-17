@@ -11,10 +11,6 @@ router = APIRouter(
     tags=["Notifications"]
 )
 
-# @router.post("/create", response_model=NotificationResponse)
-# def create_new_notification(db: Session, param: NotificationCreate):
-#     pass
-
 @router.get("/me", response_model=List[NotificationResponse])
 def get_my_notifications(
         user: dict = Depends(get_current_user),

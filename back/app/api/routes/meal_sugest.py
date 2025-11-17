@@ -6,6 +6,9 @@ from app.utils.jwt import get_current_user
 from app.services.plan import PlanCreationService
 from app.schemas.plan import PlanResponse, MealResponse, ManualMealAddRequest, MealStatusUpdate
 from app.schemas.shopping_list import ShoppingListResponse
+from app.crud.care_relation import get_carer_by_patient_id
+from app.crud.notification import create_new_notification
+from app.schemas.notification import NotificationCreate
 from app.crud.meals import *
 import logging
 from datetime import date
@@ -101,6 +104,27 @@ async def meal_status_update(meal_id: int, updated_data: MealStatusUpdate,
         meal_id=meal_id, 
         updated_data=updated_data
     )
+    try:
+        carrer = get_carer_by_patient_id(db=db, patient_id=currtent_user.id)
+        if carrer:
+            meal_status_text = "eaten" if updated_data.eaten else "marked as not eaten"
+            patient_name = currtent_user.name
+            message = (
+                f"{patient_name} {meal_status_text}"
+                f"{db_meal.description.split('.'[0])}"
+            )
+            if updated_data.comment:
+                message += f" Comment: \"{updated_data.comment}\""
+            notification_data = NotificationCreate(
+                    user_id = carrer.id,
+                    related_user_id=currtent_user.id,
+                    type= "meal_status_update",
+                    message=message
+                )
+            create_new_notification(db, notification_data)
+    except Exception as e:
+        logging.error(f"Failed to create notification for carrer")
+            
     return updated_meal
 
 @router.get("/shopping-list", response_model=ShoppingListResponse)

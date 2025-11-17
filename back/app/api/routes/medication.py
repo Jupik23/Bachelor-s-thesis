@@ -8,7 +8,12 @@ from app.schemas.medication import (MedicationCreate, MedicationListResponse,
                                     MedicationResponse, MedicationStatusUpdate,
                                     MedicationDashboardUpdate)
 from app.services.medication_service import MedicationService
+from app.services.notification import NotificationService
+from app.schemas.notification import NotificationCreate
+from app.crud.care_relation import get_carer_by_patient_id
+from app.crud.notification import create_new_notification
 from typing import List
+import logging
 
 router = APIRouter(prefix="/api/v1/medications", tags=["medications"])
 
@@ -100,4 +105,20 @@ async def update_medication_status_endpoint(
         med_id=medication_id, 
         updated_data=update_data
     )
+    
+    try:
+        carrer = get_carer_by_patient_id(db=db, patient_id=current_user.id)
+        if carrer:
+            status_text = "taken" if update_data.taken else "marked as not taken"
+            patient_name = current_user.name
+            message = f"{patient_name} {status_text} - {db_medication.name}"
+            notification_data = NotificationCreate(
+                user_id = carrer.id,
+                related_user_id=current_user.id,
+                type="medication_status_update",
+                message=message
+            )
+            create_new_notification(db, notification_data)
+    except Exception as e:
+        logging.error(f"Failed to create notification {e}")
     return updated_medication
