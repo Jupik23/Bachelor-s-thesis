@@ -1,7 +1,7 @@
 from app.schemas.notification import NotificationCreate
 from app.models.notification import Notification
 from app.models.user import User
-from sqlalchemy.orm import Session, joinloaded
+from sqlalchemy.orm import Session, joinedload
 
 def create_new_notification(db: Session, data: NotificationCreate):
     new_notification = Notification(
@@ -14,11 +14,13 @@ def create_new_notification(db: Session, data: NotificationCreate):
     db.add(new_notification)
     db.commit()
     db.refresh(new_notification)
-    return new_notification
+    return db.query(Notification).options(
+        joinedload(Notification.subject)
+    ).filter(Notification.id == new_notification.id).first()
 
 def get_unread_notification(db: Session, user_id: int):
     return db.query(Notification).options(
-        joinloaded(Notification.subject)
+        joinedload(Notification.subject)
     ).filter(
         Notification.user_id == user_id,
         Notification.is_read == False
@@ -33,4 +35,5 @@ def mark_as_read_notification(db: Session, notification_id: int, user_id: int):
         notification.is_read = True
         db.commit()
         db.refresh(notification)
+        db.refresh(notification.subject)
     return notification

@@ -38,8 +38,10 @@ class User(Base):
     notifications_received = relationship(
         "Notification",
         foreign_keys="[Notification.user_id]",
-        back_populates="recipient"
+        back_populates="recipient",
+        cascade="all, delete-orphan"
     )
+    
     notifications_about = relationship(
         "Notification",
         foreign_keys="[Notification.related_user_id]",
