@@ -35,3 +35,13 @@ class User(Base):
         back_populates="patient",
         uselist=False 
     )
+    notifications_received = relationship(
+        "Notification",
+        foreign_keys="[Notification.user_id]",
+        back_populates="recipient"
+    )
+    notifications_about = relationship(
+        "Notification",
+        foreign_keys="[Notification.related_user_id]",
+        back_populates="subject"
+    )
