@@ -4,7 +4,7 @@
       <button class="close-button" @click="$emit('close')">&times;</button>
       
       <div v-if="meal">
-        <h2>Edit Meal: {{ meal.description.split('.')[0] }}</h2>
+        <h2>Edit Meal: {{ meal.description ? meal.description.split(".")[0] : 'Current Meal' }}</h2>
         <form @submit.prevent="saveChanges">
           
           <div class="form-group">

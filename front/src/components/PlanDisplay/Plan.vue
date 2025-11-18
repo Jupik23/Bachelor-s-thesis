@@ -19,7 +19,7 @@
                         <div class="meal-details">
                             <strong :class="['meal-type', meal.meal_type]">{{ meal.meal_type.toUpperCase() }}</strong>
                             <p class="meal-desc recipe-link" @click="$emit('show-recipe', meal)">
-                                {{ meal.description.split('.')[0] }}
+                                {{ meal.description ? meal.description.split('.')[0] : 'Meal Details' }}
                                 <span class="recipe-prompt">(Click for recipe)</span>
                             </p>
                             <p v-if="meal.comment" class="meal-comment-display">
@@ -48,12 +48,8 @@
                                 </label>
                             </div>
                             <div v-if="!isReadOnly" class="edit-action-wrapper">
-                                <button 
-                                    class="btn-edit" 
-                                    @click="$emit('edit-meal', meal)"
-                                >
-                                    Edit Meal
-                                </button>
+                                <button class="btn-edit" @click="$emit('edit-meal', meal)">Edit Details</button>
+                                <button class="btn-edit" @click="$emit('change-meal', meal)">Change Meal</button>
                             </div>
                         </div>
                     </li>
@@ -147,7 +143,8 @@ const emit = defineEmits([
     'generate-plan', 
     'edit-medication', 
     'show-recipe',     
-    'edit-meal'        
+    'edit-meal',
+    'change-meal'    
 ]);
 
 const formatTime = (inputTime) => {

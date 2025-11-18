@@ -16,6 +16,8 @@
             @update-medication="updateMedicationStatus"
             @edit-medication="openEditModal"
             @show-recipe="showRecipeDetails"
+            @edit-meal="openEditMealModal"
+            @change-meal="openChangeMealModal"
         />
         <div v-if="isRecipeModalVisible" class="recipe-modal-overlay" @click.self="closeRecipeModal">
             <div class="recipe-modal-content">
@@ -51,6 +53,12 @@
             @close="closeEditMealModal"
             @save="handleSaveMeal"
         />
+        <ChangeMealModal
+          v-if="isChangeMealModalVisible"
+          :meal="mealToChange"
+          @close="closeChangeMealModal"
+          @replace="handleReplaceMeal"
+        />
     </div>
 </template> 
 
@@ -59,7 +67,8 @@ import { onMounted, ref } from 'vue';
 import PlanDisplay from '@/components/PlanDisplay/Plan.vue'
 import EditMedModal from '@/components/EditMedModal.vue';
 import EditMealModal from '@/components/EditMealModal.vue';
-import api, { updateMedInfo, getRecipeDetails } from '@/lib/api';
+import ChangeMealModal from '@/components/ChangeMealModal.vue';
+import api, { updateMedInfo, updateMealDetails, getRecipeDetails, replaceMeal } from '@/lib/api';
 
 const today = new Date().toDateString();
 const isLoading = ref(false);
@@ -119,7 +128,7 @@ async function updateMedicationStatus(medication) {
         taken: medication.taken
     };
     try {
-        await api.patch(`/api/v1/medications/${medication.id}/medication`, payload);
+        await api.patch(`/api/v1/medications/${medication.id}/status`, payload);
     } catch (e) {
         console.error("Failed to update medication status:", e);
         error.value = "Failed to update medication. Please try again.";
@@ -183,8 +192,8 @@ async function handleSaveMedication(payload) {
     error.value = "Failed to update medication details.";
   }
 }
-  const isEditMealModalVisible = ref(false);
-  
+
+const isEditMealModalVisible = ref(false);
 
 function openEditMealModal(meal) {
   itemToEdit.value = meal;
@@ -197,7 +206,7 @@ function closeEditMealModal() {
 async function handleSaveMeal(payload) {
   const { id, data } = payload;
   try {
-    const response = await updateMedInfo(id, data); 
+    const response = await updateMealDetails(id, data); 
     const mealIndex = planData.value.meals.findIndex(m => m.id === id);
     if (mealIndex !== -1) {
       planData.value.meals[mealIndex] = response.data;
@@ -206,6 +215,32 @@ async function handleSaveMeal(payload) {
   } catch (e) {
     console.error("Failed to update meal details:", e);
     error.value = "Failed to update meal details.";
+  }
+}
+const isChangeMealModalVisible = ref(false);
+const mealToChange = ref(null);
+
+function openChangeMealModal(meal) {
+  mealToChange.value = meal;
+  isChangeMealModalVisible.value = true;
+}
+
+function closeChangeMealModal(){
+  mealToChange.value = null;
+  isChangeMealModalVisible.value = false;
+}
+
+async function handleReplaceMeal({mealId, newRecipeId}){
+  try {
+    const response = await replaceMeal(mealId, newRecipeId);
+    const index = planData.value.meals.findIndex(m => m.id == mealId);
+    if (index !== -1){
+      planData.value.meals[index] = response.data;
+    }
+    isChangeMealModalVisible.value = false;
+  } catch (e){
+    console.error(e);
+    alert("Failed to replace meal");
   }
 }
 

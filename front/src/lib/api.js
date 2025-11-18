@@ -62,4 +62,20 @@ export const updateMedInfo = (med_id, data) => {
 export const getMyNotification = () => {
   return api.get(`/api/v1/notifications/me`);
 }
+
+export const searchRecipes = (query) => {
+  return api.get(`/api/v1/meals/search`, {params: {query}});
+}
+
+export const replaceMeal = (mealID, new_meal_id) => {
+  return api.put(`/api/v1/meals/${mealID}/replace`, {
+    spoonacular_recipe_id: new_meal_id,
+    meal_type: 'breakfast',
+    time: '08:00'
+  });
+}
+
+export const updateMealDetails = (meal_id, data ) => {
+  return api.patch(`/api/v1/meals/${meal_id}/details`, data)
+}
 export default api;
