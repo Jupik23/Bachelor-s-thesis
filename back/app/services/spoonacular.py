@@ -99,16 +99,17 @@ class Spoonacular():
                               intolerances: str = None, 
                               number: int = 3
     ):
-        endpoint = "recipies/complexSearch"
+        endpoint = "recipes/complexSearch"
         params = {
             "query": query,
             "number": number,
-            "addRecipeInformation": True
+            "addRecipeInformation": True,
+            "instructionsRequired": True
         }
         if diet:
             params["diet"] = diet 
-        if preferences:
-            params["preferences"] = preferences 
+        if intolerances:
+            params["intolerances"] = intolerances 
 
         data = await self._make_request(endpoint, params=params)
         
