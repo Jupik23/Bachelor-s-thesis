@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.utils.jwt import get_current_user
 from app.services.plan import PlanCreationService
-from app.schemas.plan import PlanResponse, MealResponse, ManualMealAddRequest, MealStatusUpdate
+from app.schemas.plan import PlanResponse, MealResponse, ManualMealAddRequest, MealStatusUpdate, MealUpdate
+from app.schemas.spoonacular import ComplexSearchResponse
 from app.schemas.shopping_list import ShoppingListResponse
 from app.crud.care_relation import get_carer_by_patient_id
 from app.crud.notification import create_new_notification
@@ -148,3 +149,54 @@ async def get_shopping_list_for_today(db: Session = Depends(get_database),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate shopping list."
         )
+
+@router.patch("/{meal_id}/details", response_model =MealResponse)
+async def edit_meal_details(
+    meal_id: int,
+    new_data: MealUpdate,
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_database)
+):
+    meal = get_meal_by_id(db=db, meal_id=meal_id)
+    if not meal:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal not found")
+    if meal.plan.user_id != user.id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="That's not your meal!")
+    updated_data = change_meal_time_or_type(db, meal_id, new_data)
+    return updated_data
+
+@router.get("/search", response_model=ComplexSearchResponse)
+async def search_new_recipes_with_user_preferences(
+    query:str, 
+    db: Session = Depends(get_database),
+    user: dict = Depends(get_current_user)
+):
+    service = PlanCreationService(db)
+    try:
+        return await service.serch_alternative_recipie(user_id = user.id, query= query) 
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+@router.put("/{meal_id}/replace", response_model=MealResponse)
+async def replace_meal_in_plan(
+    meal_id: int,
+    request_data: ManualMealAddRequest,
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_database)
+    ):
+    service = PlanCreationService(db)
+    db_meal = get_meal_by_id(meal_id=meal_id)
+    if not db_meal or db_meal.plan.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized or meal not found")
+    
+    try:
+        new_meal = await service.replace_meal(meal_id=meal_id,
+                                              new_meal_id=ManualMealAddRequest.spoonacular_recipe_id)
+        return new_meal
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

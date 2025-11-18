@@ -16,8 +16,9 @@ from app.services.medication_service import DrugInteractionService, DrugInteract
 from app.schemas.shopping_list import ShoppingListResponse, ShoppingListCategory
 from app.crud.medication import get_medications_by_plan_id, create_medication
 from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date
-from app.crud.meals import create_meal
+from app.crud.meals import create_meal, get_meal_by_id
 from app.schemas.medication import MedicationCreate
+from app.schemas.spoonacular import ComplexSearchResponse
 
 
 MEAL_MAPPING_3_MEALS = {
@@ -294,3 +295,48 @@ class PlanCreationService:
             total_items=len(all_ingredients),
             categories=response_categories
         )
+
+    async def serch_alternative_recipie(self, user_id:int, query: str):
+        health_form =self.health_form_service.get_health_form(user_id=user_id)
+        diet = None
+        intolerances = None
+        if health_form:
+            diet = health_form.diet_preferences
+            intolerances = health_form.intolerances
+
+        results = await self.spoonacular_service.search_recipies(
+            query=query,
+            diet=diet,
+            intolerances=intolerances,
+        )
+        if not results or 'results' not in results:
+            return ComplexSearchResponse(results=[], totalResults=0) 
+        return ComplexSearchResponse(
+            results=[ComplexSearchResponse(**r) for r in results['results']],
+            totalResults=results.get('totalResults', 0)
+        )
+    
+    async def replace_meal(self, meal_id: int, new_meal_id: int):
+        old_meal = get_meal_by_id(db=self.db, meal_id= meal_id)
+        if not old_meal:
+            raise ValueError("Meal not found")
+        plan_id = old_meal.plan_id
+        meal_time = old_meal.time
+        meal_type = old_meal.meal_type
+        recipe_info = await self.spoonacular_service.get_recipe_information(new_meal_id)
+        if not recipe_info:
+            raise ValueError("New recipe not found")
+        description = f"{recipe_info.title}"
+        if recipe_info.readyInMinutes:
+            description += f" (Ready in {recipe_info.readyInMinutes} min)"
+        self.db.delete(old_meal)
+        self.db.commit()
+        new_meal = create_meal(
+            db=self.db,
+            plan_id=plan_id,
+            meal_type=meal_type,
+            time=meal_time,
+            description=description,
+            spoonacular_recipe_id=new_meal_id
+        )
+        return MealResponse.model_validate(new_meal)

@@ -15,7 +15,9 @@ class MealResponse(MealCreate):
     comment: Optional[str]
     class Config:
         from_attributes = True
-
+class MealUpdate(BaseModel):
+    time: Optional[time]
+    meal_type: Optional[MealType] = None
 class MealStatusUpdate(BaseModel):
     eaten: bool
     comment: Optional[str] = None

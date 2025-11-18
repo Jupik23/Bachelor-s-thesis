@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.models.common import MealType
 from datetime import time
 from app.models.meal import Meal
-from app.schemas.plan import MealStatusUpdate
+from app.schemas.plan import MealStatusUpdate, MealUpdate
 
 def create_meal(db: Session, plan_id: int, meal_type: MealType, time: time, description: str, spoonacular_recipe_id: int = None) -> Meal:
     meal_data = Meal(
@@ -22,6 +22,18 @@ def create_meal(db: Session, plan_id: int, meal_type: MealType, time: time, desc
 
 def get_meal_by_id(db:Session, meal_id: int):
     return db.query(Meal).filter(Meal.id==meal_id).first()
+
+def change_meal_time_or_type(db:Session, meal_id: int, update_data: MealUpdate):
+    meal = get_meal_by_id(db=db, meal_id=meal_id)
+    if not meal:
+        return None
+    update_dict = update_data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(meal, key, value)
+
+    db.commit()
+    db.refresh(meal)
+    return meal
 
 def change_meal_status(db: Session, meal_id: int, updated_data: MealStatusUpdate):
     db_meal = get_meal_by_id(db, meal_id)

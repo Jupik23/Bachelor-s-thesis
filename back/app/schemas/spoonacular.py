@@ -17,8 +17,6 @@ class Recipe(BaseModel):
 
 class ComplexSearchResponse(BaseModel):
     results: List[Recipe]
-    offset: int
-    number: int
     totalResults: int
 
 class RecipeResponse(BaseModel):

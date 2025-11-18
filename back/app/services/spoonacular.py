@@ -95,25 +95,27 @@ class Spoonacular():
             raise ValueError(f"Invalid response structure from Spoonacular API: {e}")
         
     async def search_recipies(self, query: str, 
-                              health_form: HealthFormCreate, 
-                              number: int = 10
+                              diet: str = None,
+                              intolerances: str = None, 
+                              number: int = 3
     ):
         endpoint = "recipies/complexSearch"
-        diet_params = self._format_diet_params(health_form)
         params = {
             "query": query,
             "number": number,
-            "addRecipeInformation": False
+            "addRecipeInformation": True
         }
-        params.update(diet_params)
-        params.pop('targetCalories', None) 
+        if diet:
+            params["diet"] = diet 
+        if preferences:
+            params["preferences"] = preferences 
 
         data = await self._make_request(endpoint, params=params)
         
         if data:
             return ComplexSearchResponse.model_validate(data)
         else:
-            return ComplexSearchResponse(results=[], offset=0, number=0, totalResults=0)
+            return ComplexSearchResponse(results=[], totalResults=0)
         
     async def get_recipe_information(self, recipe_id: int):
         endpoint = f"recipes/{recipe_id}/information"
