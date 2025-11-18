@@ -80,65 +80,75 @@ const stats = ref([
 const getStats = async () => {
     isLoading.value = true;
     error.value = null;
-    try{
-        const [planResponse, notificationsResponse] = await Promise.all([
-            api.get("/api/v1/meals/today"),
-            getMyNotification() 
-        ]);
-        const planData = planResponse.data;
-        const notifications = notificationsResponse.data; 
-        if (planData.medications && planData.medications.length > 0) {
+    const results = await Promise.allSettled([
+        api.get("/api/v1/meals/today"),
+        getMyNotification()
+    ]);
+    const planResult = results[0];
+    const notificationResult = results[1];
+    if (planResult.status === 'fulfilled') {
+        const planData = planResult.value.data;
+        if (planData.medications?.length > 0) {
             const takenCount = planData.medications.filter(med => med.taken).length;
             const totalCount = planData.medications.length;
             stats.value[0].value = takenCount;
             stats.value[0].unit = `/${totalCount}`;
         }
-        if (planData.total_calories > 0){
-            stats.value[1].value = planData.total_calories
+        if (planData.total_calories > 0) {
+            stats.value[1].value = planData.total_calories;
+        } else {
+            try {
+                const calorieResponse = await api.get("/api/v1/health-form/me/calories");
+                stats.value[1].value = calorieResponse?.data?.target_calories ?? 0;
+            } catch (e) {}
         }
-        else{
-            const calorieResponse = await api.get("/api/v1/health-form/me/calories");
-            stats.value[1].value = calorieResponse?.data?.target_calories ?? 0; 
-        }
-
-        if (planData.medications && planData.medications.length > 0) {
+        if (planData.medications?.length > 0) {
             cards_data.value[0].content = planData.medications.map(med => ({
                 id: med.id,
                 text: `${med.name} at ${formatTime(med.time)}`
             }));
         } else {
-            cards_data.value[0].content = [{ id: 1, text: "No medications for today." }];
+            cards_data.value[0].content = [{ id: 'med-empty', text: "No medications for today." }];
         }
-
-        if (planData.meals && planData.meals.length > 0) {
+        if (planData.meals?.length > 0) {
             cards_data.value[1].content = planData.meals.map(meal => ({
                 id: meal.id,
                 text: `${meal.meal_type.toUpperCase()}: ${meal.description.split('.')[0]}`
             }));
         } else {
-            cards_data.value[1].content = [{ id: 1, text: "No meals planned for today." }];
+            cards_data.value[1].content = [{ id: 'meal-empty', text: "No meals planned for today." }];
         }
 
-        if (planData.interactions && planData.interactions.length > 0) {
+        if (planData.interactions?.length > 0) {
             cards_data.value[2].content = planData.interactions.map((alert, index) => ({
-                id: index,
+                id: `int-${index}`,
                 text: `${alert.severity}: ${alert.medication_1} & ${alert.medication_2}`
             }));
         } else {
-            cards_data.value[2].content = [{ id: 1, text: "No significant interactions found." }];
+            cards_data.value[2].content = [{ id: 'int-empty', text: "No significant interactions found." }];
         }
-        if (notifications && notifications.length > 0) {
+
+    } else {
+        cards_data.value[0].content = [{ id: 'no-plan-med', text: "Plan not created yet." }];
+        cards_data.value[1].content = [{ id: 'no-plan-meal', text: "Plan not created yet." }];
+        cards_data.value[2].content = [{ id: 'no-plan-int', text: "No data available." }];
+    }
+
+    if (notificationResult.status === 'fulfilled') {
+        const notifications = notificationResult.value.data;
+        if (notifications?.length > 0) {
             cards_data.value[3].content = notifications.map(n => ({
                 id: n.id,
                 text: `[${formatTime(n.sent_at.split('T')[1])}] ${n.message}`
-            }));} else {
-        cards_data.value[3].content = [{ id: 'notify-empty', text: "No new notifications." }];
-        }}catch(e){
-        console.log(e)
-        error.value = e.response?.data?.detail || "Could not load dashboard data.";
-    }finally{
-        isLoading.value = false;
+            }));
+        } else {
+            cards_data.value[3].content = [{ id: 'notify-empty', text: "No new notifications." }];
+        }
+    } else {
+        cards_data.value[3].content = [{ id: 'notify-err', text: "Could not load notifications." }];
     }
+
+    isLoading.value = false;
 }
 onMounted(() => {
     getStats()
