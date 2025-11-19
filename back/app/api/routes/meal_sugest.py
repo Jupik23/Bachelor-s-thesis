@@ -10,12 +10,11 @@ from app.schemas.shopping_list import ShoppingListResponse
 from app.crud.care_relation import get_carer_by_patient_id
 from app.crud.notification import create_new_notification
 from app.schemas.notification import NotificationCreate
-from app.crud.meals import *
+from app.crud.meals import get_meal_by_id, change_meal_status, change_meal_time_or_type
 import logging
 from datetime import date
 
-
-router = APIRouter(prefix="/api/v1/meals",  tags=["meals"])
+router = APIRouter(prefix="/api/v1/meals", tags=["meals"])
 
 @router.post("/generate", response_model=PlanResponse)
 async def generate_plan(db: Session = Depends(get_database), 
@@ -110,10 +109,8 @@ async def meal_status_update(meal_id: int, updated_data: MealStatusUpdate,
         if carrer:
             meal_status_text = "eaten" if updated_data.eaten else "marked as not eaten"
             patient_name = currtent_user.name
-            message = (
-                f"{patient_name} {meal_status_text}"
-                f"{db_meal.description.split('.'[0])}"
-            )
+            desc_preview = db_meal.description.split('.')[0] if db_meal.description else "Meal"
+            message = f"{patient_name} {meal_status_text} '{desc_preview}'."
             if updated_data.comment:
                 message += f" Comment: \"{updated_data.comment}\""
             notification_data = NotificationCreate(
@@ -173,7 +170,7 @@ async def search_new_recipes_with_user_preferences(
 ):
     service = PlanCreationService(db)
     try:
-        return await service.serch_alternative_recipie(user_id = user.id, query= query) 
+        return await service.search_alternative_recipie(user_id = user.id, query= query) 
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -188,13 +185,13 @@ async def replace_meal_in_plan(
     db: Session = Depends(get_database)
     ):
     service = PlanCreationService(db)
-    db_meal = get_meal_by_id(meal_id=meal_id)
+    db_meal = get_meal_by_id(db, meal_id=meal_id)
     if not db_meal or db_meal.plan.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized or meal not found")
     
     try:
         new_meal = await service.replace_meal(meal_id=meal_id,
-                                              new_meal_id=ManualMealAddRequest.spoonacular_recipe_id)
+                                              new_meal_id=request_data.spoonacular_recipe_id)
         return new_meal
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

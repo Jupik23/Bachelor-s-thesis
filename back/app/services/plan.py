@@ -10,7 +10,7 @@ from app.services.spoonacular import Spoonacular
 from app.services.health_form import HealthFormService
 from app.schemas.health_form import HealthFormCreate
 from app.schemas.plan import PlanCreate, PlanResponse, ManualMealAddRequest, MealResponse
-from app.schemas.spoonacular import DailyPlanResponse
+from app.schemas.spoonacular import DailyPlanResponse, ComplexSearchResponse
 from app.models.common import MealType, WithMealRelation
 from app.services.medication_service import DrugInteractionService, DrugInteractionResponse, MedicationResponse
 from app.schemas.shopping_list import ShoppingListResponse, ShoppingListCategory
@@ -18,7 +18,6 @@ from app.crud.medication import get_medications_by_plan_id, create_medication
 from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date
 from app.crud.meals import create_meal, get_meal_by_id
 from app.schemas.medication import MedicationCreate
-from app.schemas.spoonacular import ComplexSearchResponse
 
 
 MEAL_MAPPING_3_MEALS = {
@@ -39,7 +38,7 @@ class PlanCreationService:
         self.db = db
         self.spoonacular_service = Spoonacular()
         fda_key = os.getenv("OPEN_FDA_API_KEY")
-        self.interaction_checker = DrugInteractionService(db =self.db, fda_api_key=fda_key)
+        self.interaction_checker = DrugInteractionService(db=self.db, fda_api_key=fda_key)
         self.health_form_service = HealthFormService(db)
 
     async def generate_and_save_plan(self, created_by_id, user_id, time_frame: str = "day"):
@@ -89,7 +88,6 @@ class PlanCreationService:
             
             self.db.commit()
             
-            saved_medications: List[MedicationResponse] = []
             interactions: List[DrugInteractionResponse] = []
             medication_names_from_form: List[str] = []
             
@@ -120,7 +118,7 @@ class PlanCreationService:
                         description=f"Take: {default_desc_text}. Please verify time/dose."
                     )
                     
-                    db_med = create_medication(
+                    create_medication(
                         db=self.db,
                         plan_id=new_plan.id, 
                         medication_data=med_data,
@@ -128,7 +126,6 @@ class PlanCreationService:
                 
                 try:
                     self.db.commit()
-                    logging.info(f"Successfully saved {len(medication_names_from_form)} medications for plan {new_plan.id}")
                 except Exception as e:
                     logging.error(f"Error committing medications to database: {e}")
                     self.db.rollback()
@@ -232,13 +229,13 @@ class PlanCreationService:
     async def add_meal_manually(self, plan_id: int, meal_request: ManualMealAddRequest) -> MealResponse:
         plan = get_plan_with_meals_by_user_id_and_date(self.db, plan_id)
         if not plan:
-            raise ValueError(f"Plan o ID {plan_id} nie został znaleziony.")
+            raise ValueError(f"Plan ID {plan_id} not found.")
         
         recipe_info = await self.spoonacular_service.get_recipe_information(
             meal_request.spoonacular_recipe_id
         )
         if not recipe_info:
-            raise ValueError(f"Nie znaleziono przepisu o ID {meal_request.spoonacular_recipe_id}.")
+            raise ValueError(f"Recipe ID {meal_request.spoonacular_recipe_id} not found.")
 
         description = f"{recipe_info.title}" 
         if recipe_info.readyInMinutes:
@@ -277,7 +274,7 @@ class PlanCreationService:
         categorized_items = {}
         for ingredient in all_ingredients:
             category = ingredient.aisle if ingredient.aisle else "Other"
-            item_text = ingredient.original
+            item_text = ingredient.original if ingredient.original else ingredient.name
 
             if category not in categorized_items:
                 categorized_items[category] = []
@@ -296,24 +293,29 @@ class PlanCreationService:
             categories=response_categories
         )
 
-    async def serch_alternative_recipie(self, user_id:int, query: str):
-        health_form =self.health_form_service.get_health_form(user_id=user_id)
-        diet = None
-        intolerances = None
+    async def search_alternative_recipie(self, user_id: int, query: str) -> ComplexSearchResponse:
+        health_form = self.health_form_service.get_health_form(user_id=user_id)
+        diets = []
+        intolerances = []
+        
         if health_form:
-            diet = health_form.diet_preferences
-            intolerances = health_form.intolerances
+            if health_form.diet_preferences:
+                if isinstance(health_form.diet_preferences, str):
+                    diets = health_form.diet_preferences.split(',')
+                else:
+                    diets = health_form.diet_preferences
 
-        results = await self.spoonacular_service.search_recipies(
+            if health_form.intolerances:
+                if isinstance(health_form.intolerances, str):
+                    intolerances = health_form.intolerances.split(',')
+                else:
+                    intolerances = health_form.intolerances
+
+        return await self.spoonacular_service.search_recipies(
             query=query,
-            diet=diet,
+            diet=diets,
             intolerances=intolerances,
-        )
-        if not results or 'results' not in results:
-            return ComplexSearchResponse(results=[], totalResults=0) 
-        return ComplexSearchResponse(
-            results=[ComplexSearchResponse(**r) for r in results['results']],
-            totalResults=results.get('totalResults', 0)
+            number=10
         )
     
     async def replace_meal(self, meal_id: int, new_meal_id: int):
