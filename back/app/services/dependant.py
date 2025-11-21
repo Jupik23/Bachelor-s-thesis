@@ -21,11 +21,11 @@ class DependentService:
         if crud_user_auth.get_user_auth_by_email(self.db, email_adress=request.user_auth_data.email):
             raise ValueError("Użytkownik z tym adresem email już istnieje.")
         
-        if crud_user.get_user_by_login(self.db, login=request.user_data.login):
+        if crud_user.get_user_info_by_login(self.db, account_login=request.user_data.login):
             raise ValueError("Użytkownik z tym loginem już istnieje.")
 
         try:
-            new_user = crud_user.create_user(self.db, user_data=request.user_data)
+            new_user = crud_user.create_user(self.db, acount_data=request.user_data)
             
             hashed_password = UserService.hash_password(request.user_auth_data.password)
            
