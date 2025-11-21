@@ -345,31 +345,92 @@ h1 {
     color: var(--primary-color);
 }
 
+.date-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+    gap: 2rem; 
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background-color: var(--white-color);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color); 
+}
+
+.current-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 200px; 
+}
+
+.current-date h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: var(--text-color-dark);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
 .today-badge {
-    display: inline-block;
-    font-size: 0.8rem;
-    background-color: var(--secondary-color);
-    color: var(--text-color-subtle);
-    padding: 2px 8px;
+    margin-top: 0.3rem;
+    background-color: #e8f5e9; 
+    color: var(--primary-color);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 10px;
     border-radius: 12px;
-    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .btn-nav {
-    background: none;
-    border: 1px solid var(--border-color);
-    padding: 8px 16px;
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    border: 1px solid var(--border-color); 
+    color: var(--text-color-light);
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--border-radius-md);
     cursor: pointer;
     font-weight: 600;
-    color: var(--text-color-dark);
-    transition: all 0.2s;
+    font-size: 0.95rem;
+    transition: all 0.2s ease-in-out;
+    user-select: none; 
 }
 
 .btn-nav:hover {
-    background-color: var(--secondary-color);
-    color: var(--primary-color);
     border-color: var(--primary-color);
+    color: var(--primary-color);
+    background-color: rgba(39, 174, 96, 0.05); 
+    transform: translateY(-1px);
+}
+
+.btn-nav:active {
+    transform: translateY(1px);
+    background-color: rgba(39, 174, 96, 0.1);
+}
+
+@media (max-width: 480px) {
+    .date-navigation {
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+    
+    .current-date {
+        min-width: auto; 
+    }
+    
+    .current-date h2 {
+        font-size: 1.1rem;
+    }
+    
+    .btn-nav {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.85rem;
+    }
 }
 .modal-loading, .modal-error { text-align: center; padding: 3rem 1rem; }
 .modal-error h3 { color: var(--danger-color); }

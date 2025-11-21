@@ -47,8 +47,8 @@ export const createDependent = (dependentData) => {
   return api.post('api/v1/dependents/create', dependentData);
 };
 
-export const getDependentPlan = (dependentId) => {
-  return api.get(`api/v1/dependents/${dependentId}/plan/today`);
+export const getDependentPlanByDate = (dependentId, dateString) => {
+  return api.get(`/api/v1/dependents/${dependentId}/plan/date/${dateString}`);
 };
 
 export const getRecipeDetails = (recipeId) => {
