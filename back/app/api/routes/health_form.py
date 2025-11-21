@@ -11,7 +11,7 @@ from app.crud.care_relation import check_relation
 def check_user_carrer_relation(db: Session, carrer_id: int, patient_id: int):
     if carrer_id == patient_id:
         return True
-    relation_check =  check_relation(db=db, carrer_id=carrer_id, patient_id=patient_id)
+    relation_check =  check_relation(db=db, carer_id=carrer_id, patient_id=patient_id)
     if relation_check:
        return True
     raise HTTPException(

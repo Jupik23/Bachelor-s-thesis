@@ -13,6 +13,9 @@
           <span class="login">(@{{ dependent.login }})</span>
         </div>
         <div class="dependent-actions">
+          <button @click="manageHealthForm(dependent.id)">
+            Manage Health Form
+          </button>
           <button @click="managePlan(dependent.id)">
             Manage Plan
           </button>
@@ -34,6 +37,9 @@ export default {
   methods: {
     managePlan(dependentId) {
     this.$router.push(`/dependents/${dependentId}/plan`);
+    },
+    manageHealthForm(dependentId){
+      this.$router.push(`/health-form/${dependentId}`)
     }
   }
 }
