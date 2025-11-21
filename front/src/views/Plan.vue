@@ -152,7 +152,7 @@ async function updateMedicationStatus(medication) {
         taken: medication.taken
     };
     try {
-        await api.patch(`/api/v1/medications/${medication.id}/status`, payload);
+        await api.patch(`/api/v1/medications/${medication.id}/medication`, payload);
     } catch (e) {
         console.error("Failed to update medication status:", e);
         error.value = "Failed to update medication. Please try again.";

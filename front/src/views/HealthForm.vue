@@ -3,7 +3,7 @@
     <h1> Health Form</h1>
     <h2>1. Basic Information</h2>
     <label for="age-input">Age</label>
-    <input v-model="age" type="number" placeholder="Age (e.g., 30)" min="16" max="100"/>  
+    <input v-model="age" type="number" placeholder="Age (e.g., 30)" min="1" max="100"/>  
 
     <label for="gender-select">Gender</label>
     <multiselect
