@@ -47,14 +47,15 @@ async def generate_plan(db: Session = Depends(get_database),
             detail=f"Error: {e}"
         )
     
-@router.get('/today', response_model=PlanResponse) 
-async def get_todays_plan(
+@router.get('/date/{date_str}', response_model=PlanResponse) 
+async def get_plan_by_specific_date(
+    date_str: date,
     db:Session = Depends(get_database),
     user: Session = Depends(get_current_user)
 ):
     plan_service = PlanCreationService(db)
     try:
-        plan_data = await plan_service.get_todays_plan_for_user(user_id=user.id)
+        plan_data = await plan_service.get_plan_by_date(user_id=user.id, plan_date=date_str)
         return plan_data
     except Exception as e:
         raise HTTPException(

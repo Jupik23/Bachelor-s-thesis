@@ -169,11 +169,11 @@ class PlanCreationService:
                 detail=f"An unexpected error occurred during plan generation: {e}"
             )
     
-    async def get_todays_plan_for_user(self, user_id: int):
+    async def get_plan_by_date(self, user_id: int, plan_date: date):
         user_plan = get_plan_with_meals_by_user_id_and_date(
             db=self.db,
             user_id=user_id,
-            plan_date=date.today()
+            plan_date=plan_date
         )
         health_form_model = self.health_form_service.get_health_form(user_id=user_id)
         interactions: List[DrugInteractionResponse] = []
@@ -201,7 +201,7 @@ class PlanCreationService:
                 id=0,
                 user_id=user_id,
                 created_by=user_id,
-                day_start=date.today(),
+                day_start=plan_date,
                 meals=[],
                 total_calories=0,
                 total_protein=0,
@@ -238,8 +238,6 @@ class PlanCreationService:
             raise ValueError(f"Recipe ID {meal_request.spoonacular_recipe_id} not found.")
 
         description = f"{recipe_info.title}" 
-        if recipe_info.readyInMinutes:
-            description += f" (Ready in {recipe_info.readyInMinutes} min)"
 
         new_meal_orm = create_meal(
             db=self.db,
@@ -329,8 +327,6 @@ class PlanCreationService:
         if not recipe_info:
             raise ValueError("New recipe not found")
         description = f"{recipe_info.title}"
-        if recipe_info.readyInMinutes:
-            description += f" (Ready in {recipe_info.readyInMinutes} min)"
         self.db.delete(old_meal)
         self.db.commit()
         new_meal = create_meal(
