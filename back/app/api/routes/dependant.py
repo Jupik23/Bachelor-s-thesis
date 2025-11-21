@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-
+from datetime import date
 from app.database.database import get_database
 from app.utils.jwt import get_current_user
 from app.services.dependant import DependentService
@@ -48,9 +48,10 @@ async def get_my_dependents(
     dependents = service.get_my_dependents(carer_id=current_user.id)
     return dependents
 
-@router.get("/{dependent_id}/plan/today", response_model=PlanResponse)
-async def get_dependent_plan_today(
+@router.get("/{dependent_id}/plan/date/{date_str}", response_model=PlanResponse)
+async def get_dependent_plan_by_date(
     dependent_id: int,
+    date_str: date,
     db: Session = Depends(get_database),
     current_user: dict = Depends(get_current_user)
 ):
@@ -58,7 +59,8 @@ async def get_dependent_plan_today(
     
     return await service.get_dependent_plan(
         carer_id=current_user.id,
-        dependent_id=dependent_id
+        dependent_id=dependent_id,
+        plan_date=date_str
     )
 
 @router.post("/{dependent_id}/plan/generate", response_model=PlanResponse)

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import date
 from fastapi import status, HTTPException
 from app.schemas.dependent import DependentCreateRequest
 from app.schemas.user_auth import UserAuthCreate
@@ -20,11 +21,11 @@ class DependentService:
         if crud_user_auth.get_user_auth_by_email(self.db, email_adress=request.user_auth_data.email):
             raise ValueError("Użytkownik z tym adresem email już istnieje.")
         
-        if crud_user.get_user_info_by_login(self.db, account_login=request.user_data.login):
+        if crud_user.get_user_by_login(self.db, login=request.user_data.login):
             raise ValueError("Użytkownik z tym loginem już istnieje.")
 
         try:
-            new_user = crud_user.create_user(self.db, acount_data=request.user_data)
+            new_user = crud_user.create_user(self.db, user_data=request.user_data)
             
             hashed_password = UserService.hash_password(request.user_auth_data.password)
            
@@ -54,7 +55,7 @@ class DependentService:
         dependents = crud_care_relation.get_dependents_by_carer_id(self.db, carer_id=carer_id)
         return dependents
     
-    async def get_dependent_plan(self, carer_id: int, dependent_id: int) -> PlanResponse:
+    async def get_dependent_plan(self, carer_id: int, dependent_id: int, plan_date: date) -> PlanResponse:
         has_relation = crud_care_relation.check_relation(
             db=self.db,
             carer_id=carer_id,
@@ -67,7 +68,7 @@ class DependentService:
             )
         try:
             plan_service = PlanCreationService(self.db)
-            plan_data = await plan_service.get_todays_plan_for_user(user_id=dependent_id)
+            plan_data = await plan_service.get_plan_by_date(user_id=dependent_id, plan_date=plan_date)
             return plan_data
         except Exception as e:
             raise HTTPException(
