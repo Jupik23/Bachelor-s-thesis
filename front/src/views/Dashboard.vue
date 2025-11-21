@@ -3,7 +3,7 @@
         <h1>Health Dashboard!</h1>
             <div>
                 <div class="date-change-log">
-                    <p id="date">Today's overview: {{today}}</p>
+                    <p id="date">Today's overview: {{todayDisplay}}</p>
                     <RouterLink to="/health-form">Change Health metrics</RouterLink>
                 </div>
                 <div v-if="isLoading" class="loading-state">
@@ -28,13 +28,19 @@
 import {onMounted, ref, renderSlot} from "vue"
 import Stats from "@/components/dashboard/Stats.vue";
 import TodayInfo from "@/components/dashboard/TodayInfo.vue";
-import api, {getMyNotification} from "@/lib/api.js"
+import api, {getMyNotification, getPlanByDate} from "@/lib/api.js"
 const isLoading = ref(true);
 const error = ref(null)
 const today = new Date().toDateString();
+const todayDisplay = new Date().toDateString();
+const todayApi = new Date().toISOString().split('T')[0];
+
 const formatTime = (inputTime) => {
     if (!inputTime) return '';
     try {
+        if (inputTime.includes('T')) {
+            inputTime = inputTime.split('T')[1];
+        }
         const parts = inputTime.split(":");
         return `${parts[0]}:${parts[1]}`;
     } catch (e) {
@@ -81,7 +87,7 @@ const getStats = async () => {
     isLoading.value = true;
     error.value = null;
     const results = await Promise.allSettled([
-        api.get("/api/v1/meals/today"),
+        getPlanByDate(todayApi),
         getMyNotification()
     ]);
     const planResult = results[0];

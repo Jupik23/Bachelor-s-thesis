@@ -78,4 +78,8 @@ export const replaceMeal = (mealID, new_meal_id) => {
 export const updateMealDetails = (meal_id, data ) => {
   return api.patch(`/api/v1/meals/${meal_id}/details`, data)
 }
+
+export const getPlanByDate = (dateString) => {
+    return api.get(`/api/v1/meals/date/${dateString}`);
+}
 export default api;

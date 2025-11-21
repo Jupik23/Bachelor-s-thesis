@@ -13,7 +13,7 @@
     </ul>
     <p v-else>No data to show</p>
     <RouterLink to="/todays-plan"
-            v-if="card_data.title !== 'Interaction alerts'" 
+            v-if="card_data.title !== 'Interaction alerts' && card_data.title !== 'Notifications'"
             class="btn-primary"
             @click="viewFullSchedule(card_data.title)">
             View Full Schedule!

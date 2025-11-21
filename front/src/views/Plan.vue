@@ -1,6 +1,13 @@
 <template>
     <div>
-        <h1>Today's plan: {{ today }}</h1>
+        <div class="date-navigation">
+            <button class="btn-nav" @click="changeDate(-1)">← Prev</button>
+            <div class="current-date">
+                <h2>{{ formattedDisplayDate }}</h2>
+                <span v-if="isToday" class="today-badge">Today</span>
+            </div>
+            <button class="btn-nav" @click="changeDate(1)">Next →</button>
+        </div>
         <div class="page-actions">
             <RouterLink to="/shopping-list" class="btn btn-secondary">
                 🛒 Get Shopping List
@@ -30,9 +37,6 @@
                 </div>
                 <div v-else-if="selectedRecipeDetails" class="recipe-details">
                     <h2>{{ selectedRecipeDetails.title }}</h2>
-                    <p v-if="selectedRecipeDetails.readyInMinutes">
-                        Ready in: <strong>{{ selectedRecipeDetails.readyInMinutes }} minutes</strong>
-                    </p>
                     <h3>Summary</h3>
                     <div class="recipe-summary" v-html="selectedRecipeDetails.summary"></div>
                     <h3 v-if="selectedRecipeDetails.instructions">Instructions</h3>
@@ -63,18 +67,38 @@
 </template> 
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import PlanDisplay from '@/components/PlanDisplay/Plan.vue'
 import EditMedModal from '@/components/EditMedModal.vue';
 import EditMealModal from '@/components/EditMealModal.vue';
 import ChangeMealModal from '@/components/ChangeMealModal.vue';
-import api, { updateMedInfo, updateMealDetails, getRecipeDetails, replaceMeal } from '@/lib/api';
+import api, { updateMedInfo, updateMealDetails, getRecipeDetails, replaceMeal, getPlanByDate } from '@/lib/api';
 
-const today = new Date().toDateString();
+const currentDate = ref(new Date());
 const isLoading = ref(false);
 const error = ref(null);
 const planData = ref(null)
 const itemToEdit = ref(null)
+
+const apiDateFormat = computed(() => {
+  return currentDate.value.toISOString().split('T')[0];
+})
+
+const formattedDisplayDate = computed(() => {
+    return currentDate.value.toDateString();
+});
+
+const isToday = computed(() =>{
+  const now = new Date();
+  return currentDate.value.toDateString() === now.toDateString();
+})
+
+const changeDate = (days) => {
+  const newDate = new Date(currentDate.value);
+  newDate.setDate(newDate.getDate() + days);
+  currentDate.value = newDate;
+  loadInitialData()
+}
 
 const generatePlan = async () => {
     isLoading.value = true;
@@ -93,7 +117,7 @@ const loadInitialData = async () => {
     error.value = null;
     planData.value = null;
     try {
-        const planResponse = await api.get("api/v1/meals/today");
+        const planResponse = await getPlanByDate(apiDateFormat.value)
         planData.value = planResponse.data;
     } catch (e) {
         console.error("Error loading initial data: ", e);
@@ -299,6 +323,53 @@ h1 {
   cursor: pointer;
   line-height: 1;
   padding: 0;
+}
+.date-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    background-color: var(--background-color-light); 
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.current-date {
+    text-align: center;
+}
+
+.current-date h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.today-badge {
+    display: inline-block;
+    font-size: 0.8rem;
+    background-color: var(--secondary-color);
+    color: var(--text-color-subtle);
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-top: 4px;
+}
+
+.btn-nav {
+    background: none;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-color-dark);
+    transition: all 0.2s;
+}
+
+.btn-nav:hover {
+    background-color: var(--secondary-color);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
 }
 .modal-loading, .modal-error { text-align: center; padding: 3rem 1rem; }
 .modal-error h3 { color: var(--danger-color); }
