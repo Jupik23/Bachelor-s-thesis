@@ -54,7 +54,7 @@ class DependentService:
     def get_my_dependents(self, carer_id: int) -> List[User]:
         dependents = crud_care_relation.get_dependents_by_carer_id(self.db, carer_id=carer_id)
         return dependents
-    
+
     async def get_dependent_plan(self, carer_id: int, dependent_id: int, plan_date: date) -> PlanResponse:
         has_relation = crud_care_relation.check_relation(
             db=self.db,
