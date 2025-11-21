@@ -40,6 +40,7 @@ export const userAuthStore = defineStore("auth", {
         try {
             setAuthToken(token)
             const response = await api.get("/api/v1/users/me")
+            this.user = response.data
             this.token = token
             this.isAuthenticated = true
             return true

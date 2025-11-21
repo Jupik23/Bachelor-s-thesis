@@ -84,11 +84,22 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router'
+import { userAuthStore } from '@/lib/auth.js';
 import Multiselect from 'vue-multiselect'
 import "vue-multiselect/dist/vue-multiselect.min.css";
-import api from "../lib/api.js";
+import api, {getHealthForm_by_id, saveHealthForm} from "../lib/api.js";
 
+const route = useRoute();
+const router = useRouter();
+const authStore = userAuthStore();
+
+const targetUserID = computed(()=> {
+  if (route.params.id) {
+      return parseInt(route.params.id);
+  }return authStore.user?.id;
+})
 //health form data - that will be given by user
 const weight = ref(null);
 const height = ref(null);
@@ -183,7 +194,7 @@ const initializeDataFromDB = async ()=> {
     preferences.value = preferences_response.data;
     intolerances.value = intolerances_response.data;
     try{
-      const userFormResponse = await api.get("api/v1/health-form/me");
+      const userFormResponse = await getHealthForm_by_id(targetUserID.value);
       if (userFormResponse.data) {
         populateForm(userFormResponse.data);
       }  
@@ -247,7 +258,7 @@ const handleSubmit = async () => {
       activity_level: selectedActivityLevel.value?.value,
       calorie_goal: selectedCalorieGoal.value?.value,
     };
-    const response = await api.put("/api/v1/health-form", dataFormValues)
+    const response = await saveHealthForm(targetUserID.value, dataFormValues)
     populateForm(response.data);
     successMessage.value = hasExistingForm.value 
       ? "Form updated successfully" 

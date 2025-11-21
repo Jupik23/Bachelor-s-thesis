@@ -82,4 +82,12 @@ export const updateMealDetails = (meal_id, data ) => {
 export const getPlanByDate = (dateString) => {
     return api.get(`/api/v1/meals/date/${dateString}`);
 }
+
+export const getHealthForm_by_id = (user_id) => {
+  return api.get(`/api/v1/health-form/${user_id}`);
+}
+
+export const saveHealthForm = (user_id, data) => {
+  return api.put(`/api/v1/health-form/${user_id}`, data);
+}
 export default api;

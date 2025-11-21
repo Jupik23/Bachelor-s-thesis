@@ -25,41 +25,55 @@ const routes = [
             forVisitors: true,
         }
     },
-    { path: "/health-form", 
+    { path: "/health-form/:id?", 
         name: "healthform", 
         component: () => import("@/views/HealthForm.vue"),
         meta: {
-            // uncomment after building FE
-            // requiresAuth: true,
-            // forVisitors: false,
-            forVisitors: true,
+            requiresAuth: true,
+            forVisitors: false,
         }
     },
     {path: "/dashboard",
         name: "dashboard",
         component: () => import("@/views/Dashboard.vue"),
         meta: {
-            forVisitors: true
+            requiresAuth: true,
+            forVisitors: false,
         }
     },
     {path: "/todays-plan",
         name: "mealplan",
-        component: () => import("@/views/Plan.vue")
+        component: () => import("@/views/Plan.vue"),
+        meta: {
+            requiresAuth: true,
+            forVisitors: false,
+        }
     },
     {path: "/shopping-list",
         name: "shopping-list",
-        component: () => import("@/views/ShoppingList.vue")
+        component: () => import("@/views/ShoppingList.vue"),
+        meta: {
+            requiresAuth: true,
+            forVisitors: false,
+        }
     },
     {
         path: '/dependents',
         name: 'ManageDependents',
         component: () => import('@/views/ManageDependents.vue'),
+        meta: {
+            requiresAuth: true,
+            forVisitors: false,
+        }
     },
     {
         path: '/dependents/:id/plan', 
         name: 'DependentPlan',
         component: () => import('@/views/DependentPlan.vue'),
-        meta: { requiresAuth: true } 
+        meta: {
+            requiresAuth: true,
+            forVisitors: false,
+        }
     }
 ]
 
