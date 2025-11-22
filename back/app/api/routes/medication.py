@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.utils.jwt import get_current_user
 from app.crud.medication import *
+from app.crud.care_relation import check_relation
 from app.database.database import get_database
 from app.schemas.medication import (MedicationCreate, MedicationListResponse,
                                     DrugValidationRequest, DrugValidationResponse,
@@ -71,7 +72,11 @@ async def edit_medication_details(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Medication not found"
         )
-    if db_med.plan.user_id != current_user.id:
+    is_owner = db_med.plan.user_id == current_user.id
+    is_carer = False
+    if not is_owner:
+        is_carer = check_relation(db=db, carer_id=current_user.id, patient_id=db_med.plan.user_id)
+    if not is_owner and not is_carer:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to edit this medication"
@@ -95,7 +100,11 @@ async def update_medication_status_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Medication with id {medication_id} not found"
         )
-    if db_medication.plan.user_id != current_user.id:
+    is_owner = db_medication.plan.user_id == current_user.id
+    is_carer = False
+    if not is_owner:
+        is_carer = check_relation(db=db, carer_id=current_user.id, patient_id=db_medication.plan.user_id)
+    if not is_owner and not is_carer:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update this medication"
@@ -105,20 +114,20 @@ async def update_medication_status_endpoint(
         med_id=medication_id, 
         updated_data=update_data
     )
-    
-    try:
-        carrer = get_carer_by_patient_id(db=db, patient_id=current_user.id)
-        if carrer:
-            status_text = "taken" if update_data.taken else "marked as not taken"
-            patient_name = current_user.name
-            message = f"{patient_name} {status_text} - {db_medication.name}"
-            notification_data = NotificationCreate(
-                user_id = carrer.id,
-                related_user_id=current_user.id,
-                type="medication_status_update",
-                message=message
-            )
-            create_new_notification(db, notification_data)
-    except Exception as e:
-        logging.error(f"Failed to create notification {e}")
+    if is_owner:
+        try:
+            carrer = get_carer_by_patient_id(db=db, patient_id=current_user.id)
+            if carrer:
+                status_text = "taken" if update_data.taken else "marked as not taken"
+                patient_name = current_user.name
+                message = f"{patient_name} {status_text} - {db_medication.name}"
+                notification_data = NotificationCreate(
+                    user_id = carrer.id,
+                    related_user_id=current_user.id,
+                    type="medication_status_update",
+                    message=message
+                )
+                create_new_notification(db, notification_data)
+        except Exception as e:
+            logging.error(f"Failed to create notification {e}")
     return updated_medication
