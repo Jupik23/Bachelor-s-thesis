@@ -56,6 +56,12 @@ export const userAuthStore = defineStore("auth", {
             this.token = token
             await this.checkToken()
         }
+    },
+    setToken(token){
+        this.token = token;
+        this.isAuthenticated = true;
+        localStorage.setItem("token", token);
+        setAuthToken(token);
     }
     }
 })

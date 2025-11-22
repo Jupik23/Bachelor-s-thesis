@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, status, Body
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.schemas.user_auth import UserAuthCreate
@@ -50,13 +51,14 @@ async def oauth2_callback(provider: str, code: str, state: str = None, db: Sessi
         login_response = OAuth2Service.process_oauth2_login(
             db, user_info, access_token, refresh_token
         )
-        return login_response
+        jwt_token = login_response.access_token
+        redirect = f"http://localhost/login?token={jwt_token}"
+        return RedirectResponse(
+            url=redirect
+            )
         
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"OAuth2 authentication failed: {str(e)}"
-        )
+        return RedirectResponse(url=f"http://localhost/login?error{str(e)}")
 
 # @router.post("/{provider}/mobile")
 # async def oauth2_mobile_login(provider: str,callback_request: OAuth2CallbackRequest = Body(...),db: Session = Depends(get_database)):

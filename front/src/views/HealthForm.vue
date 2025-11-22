@@ -98,7 +98,7 @@ const authStore = userAuthStore();
 const targetUserID = computed(()=> {
   if (route.params.id) {
       return parseInt(route.params.id);
-  }return authStore.user?.id;
+  }return authStore.user?.id || null;
 })
 //health form data - that will be given by user
 const weight = ref(null);
@@ -186,6 +186,7 @@ const populateForm = (data) => {
 }
 
 const initializeDataFromDB = async ()=> {
+  isLoading.value=true;
   try{ 
     const [preferences_response, intolerances_response] = await Promise.all([
       api.get("api/v1/preferences"),

@@ -23,24 +23,41 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import api, { setAuthToken } from '../lib/api.js'
+import { onMounted, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import api from '../lib/api.js'
 import Card from '@/components/Card.vue'
-import { userAuthStore } from '@/lib/auth'
-const router = useRouter()
+import { userAuthStore  } from '@/lib/auth'
+const router = useRouter();
+const route = useRoute();
 const login = ref({email: '', password: ''})
 const loading = ref(false)
 const err = ref(null)
+const authStore = userAuthStore()
+
+const handleOAuthCallback = async () =>{
+  const token = route.query.token;
+  const error = route.query.error;
+  if (error){
+    console.error("OAuth error:", error);
+    router.replace("/login")
+    return;
+  }
+  if (token){
+    console.log("OAuth is working");
+    authStore.setToken(token);
+    await authStore.checkToken();
+    router.replace('/dashboard');
+  }
+}
 
 async function onLoginViaJson() {
   loading.value = true
   err.value = null
   try{
-    const authStore = userAuthStore()
     const res = await authStore.login({
-      email: login.value.email,
-      password: login.value.password
+    email: login.value.email,
+    password: login.value.password
     })
     if(res.success){
       router.push("/dashboard")
@@ -58,7 +75,7 @@ async function loginViaFacebook() {
   loading.value = true
   err.value = null
   try{
-    const {data} = await api.get('/api/v1/fauth/facebook')
+    const {data} = await api.get('/api/v1/auth/facebook')
     if(!data?.authorization_url){
       throw new Error("No authorization received")
     }
@@ -73,19 +90,9 @@ async function loginViaFacebook() {
   }
 }
 
-async function handleOAuthCallback() {
-  const urlParams = new URLSearchParams(window.location.search)
-  const code = urlParams.get('code')
-  const state = urlParams.get('state')
-  const storedState = sessionStorage.getItem('oauth_state')
-  loading.value = true
-  err.value = null
-
-  if (state !== storedState){
-    throw new Error("Invalid state")
-  }
-  const {data} = await api.post("api/v1/auth/facebook/callback")
-}
+onMounted(() =>{
+  handleOAuthCallback();
+})
 </script>
 <style scoped>
 .container{
