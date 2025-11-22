@@ -1,5 +1,11 @@
 <template>
     <div>
+      <div v-if="isDependentView">
+             <h1>Plan for Dependent (ID: {{ dependentId }})</h1>
+             <p style="color: #666; font-style: italic; margin-bottom: 1rem;">
+                You are managing this plan as a carer.
+             </p>
+        </div>
         <div class="date-navigation">
             <button class="btn-nav" @click="changeDate(-1)">← Prev</button>
             <div class="current-date">
@@ -67,18 +73,24 @@
 </template> 
 
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import PlanDisplay from '@/components/PlanDisplay/Plan.vue'
+import { useRoute } from 'vue-router';
 import EditMedModal from '@/components/EditMedModal.vue';
 import EditMealModal from '@/components/EditMealModal.vue';
 import ChangeMealModal from '@/components/ChangeMealModal.vue';
-import api, { updateMedInfo, updateMealDetails, getRecipeDetails, replaceMeal, getPlanByDate } from '@/lib/api';
+import api, { updateMedStatus, updateMedDetails, updateMealDetails, updateMealsStatus, getRecipeDetails,
+  getDependentPlanByDate, replaceMeal, getPlanByDate } from '@/lib/api';
 
 const currentDate = ref(new Date());
 const isLoading = ref(false);
 const error = ref(null);
 const planData = ref(null)
 const itemToEdit = ref(null)
+
+const route = useRoute();
+const dependentId = computed(() => route.params.id);
+const isDependentView = computed(() => !!dependentId.value);
 
 const apiDateFormat = computed(() => {
   return currentDate.value.toISOString().split('T')[0];
@@ -103,8 +115,18 @@ const changeDate = (days) => {
 const generatePlan = async () => {
     isLoading.value = true;
     try {
-        const response = await api.post("api/v1/meals/generate"); 
-        planData.value = response.data;
+      let response;
+      if (isDependentView){
+        response = await api.post(`api/v1/dependents/${dependentId.value}/plan/generate`)
+      }else{
+        response = await api.post(`api/v1/meals/generate`)
+      }
+      if (isToday.value) {
+             planData.value = response.data;
+      } else {
+            currentDate.value = new Date();
+            planData.value = response.data;
+      }
     } catch (e) {
         console.log("Error: ", e);
         error.value = e.response?.data?.detail || "Could not generate meal plan";
@@ -117,8 +139,13 @@ const loadInitialData = async () => {
     error.value = null;
     planData.value = null;
     try {
-        const planResponse = await getPlanByDate(apiDateFormat.value)
-        planData.value = planResponse.data;
+      let response; 
+        if (isDependentView.value){
+          response = await getDependentPlanByDate(dependentId.value, apiDateFormat.value)
+        }else{
+          response = await getPlanByDate(apiDateFormat.value)
+        }
+        planData.value = response.data;
     } catch (e) {
         console.error("Error loading initial data: ", e);
         error.value = e.response?.data?.detail || "Could not load initial data.";
@@ -135,7 +162,7 @@ async function updateMealStatus(meal) {
     };
 
     try {
-        const response = await api.patch(`/api/v1/meals/${meal.id}`, payload);
+        const response = await updateMealsStatus(meal.id, payload);
         const mealIndex = planData.value.meals.findIndex(m => m.id === meal.id);
         if (mealIndex !== -1) {
             planData.value.meals[mealIndex] = response.data;
@@ -152,7 +179,7 @@ async function updateMedicationStatus(medication) {
         taken: medication.taken
     };
     try {
-        await api.patch(`/api/v1/medications/${medication.id}/medication`, payload);
+        await  updateMedStatus(medication.id, payload);
     } catch (e) {
         console.error("Failed to update medication status:", e);
         error.value = "Failed to update medication. Please try again.";
@@ -205,7 +232,7 @@ function closeEditModal() {
 async function handleSaveMedication(payload) {
   const { id, data } = payload;
   try {
-    const response = await updateMedInfo(id, data);  
+    const response = await updateMedDetails(id, data);  
     const medIndex = planData.value.medications.findIndex(m => m.id === id);
     if (medIndex !== -1) {
       planData.value.medications[medIndex] = response.data;
@@ -267,6 +294,9 @@ async function handleReplaceMeal({mealId, newRecipeId}){
     alert("Failed to replace meal");
   }
 }
+watch(() => route.params.id, () => {
+    loadPlanData();
+});
 
 onMounted(() => {
     loadInitialData();

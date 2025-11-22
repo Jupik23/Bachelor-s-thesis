@@ -35,10 +35,6 @@ api.interceptors.response.use(
     }
 );
 
-export const healtFormApi = {
-    create: (data) => api.post('api/v1/health_form/create/', data)
-}
-
 export const getMyDependents = () => {
   return api.get('api/v1/dependents/my');
 };
@@ -55,8 +51,12 @@ export const getRecipeDetails = (recipeId) => {
   return api.get(`/api/v1/recipes/${recipeId}`);
 };
 
-export const updateMedInfo = (med_id, data) => {
+export const updateMedDetails = (med_id, data) => {
   return api.patch(`/api/v1/medications/${med_id}`, data);
+}
+
+export const updateMedStatus = (med_id, data) => {
+  return api.patch(`/api/v1/medications/${med_id}/medication`, data)
 }
 
 export const getMyNotification = () => {
@@ -77,6 +77,10 @@ export const replaceMeal = (mealID, new_meal_id) => {
 
 export const updateMealDetails = (meal_id, data ) => {
   return api.patch(`/api/v1/meals/${meal_id}/details`, data)
+}
+
+export const updateMealsStatus = (meal_id, data) => {
+  return api.patch(`/api/v1/meals/${meal_id}`, data)
 }
 
 export const getPlanByDate = (dateString) => {

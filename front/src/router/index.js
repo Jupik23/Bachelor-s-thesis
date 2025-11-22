@@ -69,7 +69,7 @@ const routes = [
     {
         path: '/dependents/:id/plan', 
         name: 'DependentPlan',
-        component: () => import('@/views/DependentPlan.vue'),
+        component: () => import('@/views/Plan.vue'),
         meta: {
             requiresAuth: true,
             forVisitors: false,
