@@ -28,6 +28,7 @@ class MealType(str, Enum):
     supper = "supper"
 
 class WithMealRelation(str, Enum):
+    unknown = "no_dataa"
     before = "before"
     during = "during"
     after = "after"

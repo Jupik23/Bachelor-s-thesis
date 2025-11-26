@@ -12,7 +12,7 @@ class Medication(Base):
     time = Column(Time, nullable=False)
     name = Column(String, nullable=False)
     taken = Column(Boolean, default=False)
-    with_meal_relation = Column(SAEnum(WithMealRelation), default=WithMealRelation.empty_stomach) 
+    with_meal_relation = Column(SAEnum(WithMealRelation), default=WithMealRelation.unknown) 
     description = Column(String, nullable=True)
 
     plan = relationship("Plan", back_populates="medications")

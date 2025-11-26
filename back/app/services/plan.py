@@ -103,19 +103,25 @@ class PlanCreationService:
             
             if medication_names_from_form:
                 for med_name in medication_names_from_form:
-                    default_relation = WithMealRelation.empty_stomach
+                    try:
+                        detected_relation = await self.interaction_checker.get_medication_timing(med_name=med_name)
+                    except Exception as e:
+                        logging.error(f"Failed to detect meal-med relation: {med_name} : {e}")
+                        detected_relation = WithMealRelation.unknown
+                    detected_relation = WithMealRelation.unknown
                     relation_map = {
+                        WithMealRelation.unknown: "no data",
                         WithMealRelation.empty_stomach: "on an empty stomach",
                         WithMealRelation.before: "before meal",
                         WithMealRelation.during: "during meal",
                         WithMealRelation.after: "after meal",
                     }
-                    default_desc_text = relation_map.get(default_relation, "as directed")
+                    default_desc_text = relation_map.get(detected_relation, "as directed")
                     med_data = MedicationCreate(
                         name=med_name,
                         time=time(8, 0),
-                        with_meal_relation=default_relation,
-                        description=f"Take: {default_desc_text}. Please verify time/dose."
+                        with_meal_relation=detected_relation,
+                        description=f"Take: {default_desc_text}. (Auto-detected from FDA label)"
                     )
                     
                     create_medication(
