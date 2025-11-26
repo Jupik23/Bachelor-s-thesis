@@ -20,7 +20,7 @@ def get_my_notifications(
     notifications = service.get_user_notification(carrer_id=user.id)
     return notifications
 
-@router.patch("/{notification_id}", response_model=NotificationResponse)
+@router.patch("/{notification_id}", status_code=status.HTTP_204_NO_CONTENT)
 def mark_as_read(notification_id: int,
                  user: dict = Depends(get_current_user),
                  db: Session = Depends(get_database),

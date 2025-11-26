@@ -98,4 +98,8 @@ export const saveHealthForm = (user_id, data) => {
 export const searchMedicationsApi = (query) => {
   return api.get(`/api/v1/medications/search`, { params: { query } });
 }
+
+export const markNotificationAsRead = (notificationID) => {
+  return api.patch(`/api/v1/notifications/${notificationID}`)
+}
 export default api;

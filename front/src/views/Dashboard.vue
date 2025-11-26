@@ -17,7 +17,8 @@
                 </div>
                 <div v-else class="dashboard-content">
                     <Stats :stats="stats"></Stats>
-                    <TodayInfo :cardsData="cards_data"></TodayInfo>
+                    <TodayInfo :cardsData="cards_data"
+                                @mark-read="handleMarkAsRead"></TodayInfo>
                 </div>
                 
             </div> 
@@ -28,7 +29,7 @@
 import {onMounted, ref, renderSlot} from "vue"
 import Stats from "@/components/dashboard/Stats.vue";
 import TodayInfo from "@/components/dashboard/TodayInfo.vue";
-import api, {getMyNotification, getPlanByDate} from "@/lib/api.js"
+import api, {getMyNotification, getPlanByDate, markNotificationAsRead} from "@/lib/api.js"
 const isLoading = ref(true);
 const error = ref(null)
 const today = new Date().toDateString();
@@ -156,6 +157,21 @@ const getStats = async () => {
 
     isLoading.value = false;
 }
+const handleMarkAsRead = async (notificationID) => {
+    try{
+        await markNotificationAsRead(notificationID);
+        await getStats()
+        const notificationsCard = cards_data.value.find(c => c.title === "Notifications");
+        if (notificationsCard) {
+            notificationsCard.content = notificationsCard.content.filter(n => n.id !== notificationID);
+            if (notificationsCard.content.length === 0) {
+                notificationsCard.content = [{ id: 'notify-empty', text: "No new notifications." }];
+        }}
+    }catch(e) {
+        console.error("Failed to mark as read:", e);
+    }
+};
+
 onMounted(() => {
     getStats()
 })
