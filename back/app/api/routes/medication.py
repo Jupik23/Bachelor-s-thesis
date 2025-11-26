@@ -131,3 +131,12 @@ async def update_medication_status_endpoint(
         except Exception as e:
             logging.error(f"Failed to create notification {e}")
     return updated_medication
+
+@router.get('/search', response_model=List[str])
+async def search_medications_db(
+        query,
+        db: Session = Depends(get_database)
+):
+    service = MedicationService(db=db)
+    results = await service.search_drug(query=query)
+    return results

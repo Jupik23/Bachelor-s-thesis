@@ -82,7 +82,6 @@ ul {
   color: #666;
   font-style: italic;
 }
-
 .dependent-actions button {
   background-color: #28a745;
   color: white;
@@ -90,6 +89,7 @@ ul {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  margin-left: 1rem;
 }
 
 .dependent-actions button:hover {

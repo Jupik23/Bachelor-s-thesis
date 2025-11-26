@@ -66,10 +66,16 @@
     <label for="medicaments-taken">Medicaments</label>
     <multiselect
       v-model="medicaments"
-      :options="[]"
+      :options=medicationOptions
       :multiple="true"
       :taggable="true"
       @tag="addTag"
+      @search-change="onMedicationSearch"
+      :loading="isSearchingMed"
+      :internal-search="false" 
+      :clear-on-select="false"
+      :close-on-select="false"
+      :options-limit="5"
       placeholder="Type medication names (press Enter after each)"
     />
 
@@ -89,10 +95,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { userAuthStore } from '@/lib/auth.js';
 import Multiselect from 'vue-multiselect'
 import "vue-multiselect/dist/vue-multiselect.min.css";
-import api, {getHealthForm_by_id, saveHealthForm} from "../lib/api.js";
+import api, {getHealthForm_by_id, saveHealthForm, searchMedicationsApi} from "../lib/api.js";
 
 const route = useRoute();
-const router = useRouter();
 const authStore = userAuthStore();
 
 const targetUserID = computed(()=> {
@@ -211,6 +216,36 @@ const initializeDataFromDB = async ()=> {
         isLoading.value = false;
     }
 }
+const medicationOptions = ref([]);
+const isSearchingMed = ref(false);
+
+const debounce = (fn, delay) => {
+  let timeoutID;
+  return (...args) => {
+    clearTimeout(timeoutID)
+    timeoutID = setTimeout(() => fn(...args), delay);
+  };
+};
+
+const fetchMedications = async (query) => {
+  if (!query || query.length < 0){
+    medicationOptions.value = []
+    return;
+  }
+  isSearchingMed.value = true;
+  try{
+    const response = await searchMedicationsApi(query);
+    medicationOptions.value = response.data;
+  }catch(error){
+    console.log(error)
+  }finally{
+    isSearchingMed.value=false;
+  }
+}
+
+const onMedicationSearch = debounce((query) => {
+  fetchMedications(query);
+},300);
 
 onMounted(() => {
   initializeDataFromDB();

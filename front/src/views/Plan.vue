@@ -116,7 +116,7 @@ const generatePlan = async () => {
     isLoading.value = true;
     try {
       let response;
-      if (isDependentView){
+      if (isDependentView.value){
         response = await api.post(`api/v1/dependents/${dependentId.value}/plan/generate`)
       }else{
         response = await api.post(`api/v1/meals/generate`)

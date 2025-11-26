@@ -191,6 +191,30 @@ class DrugInteractionService:
                 severity="None",
                 description=None
             )
+        
+    async def search_medications(self, query: str, limit: int = 5):
+        if not query or len(query) < 2:
+            return []
+        endpoint = f"{self.openfda_base}/label.json"
+        search_query = f'(openfda.brand_name:"{query}*" OR openfda.generic_name:{query}*)'
+        params = {
+            "search": search_query,
+            "limit": limit,
+        }
+        data = await self._make_request(endpoint, params)
+        results = []
+        if data and "results" in data:
+            for item in data['results']:
+                if 'openfda' in item:
+                    brands = item['openfda'].get('brand_nem',[])
+                    generics = item['openfda'].get('generic_name',[])
+                    if brands: results.extend(brands)
+                    if generics: results.extend(generics)
+        clean_result=sorted(list(set(
+            [r.title() for r in results if r.lower().startswith(query.lower())]
+        )))[:limit]
+        return clean_result
+
 class MedicationService:
     def __init__(self, db: Session):
         self.db = db
@@ -238,3 +262,6 @@ class MedicationService:
                 drug_name=drug_name,
                 is_valid=False,
             )
+
+    async def search_drug(self, query: str):
+        return await self.interaction_checker.search_medications(query)

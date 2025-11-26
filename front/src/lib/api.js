@@ -94,4 +94,8 @@ export const getHealthForm_by_id = (user_id) => {
 export const saveHealthForm = (user_id, data) => {
   return api.put(`/api/v1/health-form/${user_id}`, data);
 }
+
+export const searchMedicationsApi = (query) => {
+  return api.get(`/api/v1/medications/search`, { params: { query } });
+}
 export default api;
