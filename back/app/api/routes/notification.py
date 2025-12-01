@@ -5,6 +5,7 @@ from app.database.database import get_database
 from app.utils.jwt import get_current_user
 from app.schemas.notification import NotificationCreate, NotificationResponse
 from app.services.notification import NotificationService
+import logging
 
 router = APIRouter(
     prefix="/api/v1/notifications",
@@ -16,9 +17,14 @@ def get_my_notifications(
         user: dict = Depends(get_current_user),
         db: Session = Depends(get_database)
 ):
-    service = NotificationService(db=db)
-    notifications = service.get_user_notification(carrer_id=user.id)
-    return notifications
+    try:
+        service = NotificationService(db=db)
+        notifications = service.get_user_notification(carrer_id=user.id)
+        return notifications
+    except Exception as e:
+        logging.error(f"Error fetching notifications: {e}")
+        db.rollback()
+        return []
 
 @router.patch("/{notification_id}", response_model=NotificationResponse)
 def mark_as_read(notification_id: int,

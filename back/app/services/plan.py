@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from datetime import date, time
 import logging
-from typing import List
+from typing import List, Optional
 import os
 import asyncio
 from fastapi import HTTPException, status
@@ -41,7 +41,10 @@ class PlanCreationService:
         self.interaction_checker = DrugInteractionService(db=self.db, fda_api_key=fda_key)
         self.health_form_service = HealthFormService(db)
 
-    async def generate_and_save_plan(self, created_by_id, user_id, time_frame: str = "day"):
+    async def generate_and_save_plan(self, created_by_id, user_id, time_frame: str = "day", plan_date: Optional[date] = None):
+        if plan_date is None:
+            plan_date = date.today()
+
         user_health_form_model = self.health_form_service.get_health_form(user_id=user_id)
 
         if not user_health_form_model:
@@ -59,11 +62,10 @@ class PlanCreationService:
             )
             if plan_response_spoonacular is None or not hasattr(plan_response_spoonacular, 'meals'):
                 raise ValueError("Received invalid plan data from Spoonacular.")
-            
             plan_data = PlanCreate(
                 user_id=user_id,
                 created_by=created_by_id,
-                day_start=date.today(),
+                day_start=plan_date, 
                 total_calories=plan_response_spoonacular.nutrients.calories,
                 total_protein=plan_response_spoonacular.nutrients.protein,
                 total_fat=plan_response_spoonacular.nutrients.fat,
@@ -87,64 +89,67 @@ class PlanCreationService:
                 )
             
             self.db.commit()
-            
+            self.db.refresh(new_plan)            
             interactions: List[DrugInteractionResponse] = []
-            medication_names_from_form: List[str] = []
+            db_medications = []
             
-            if user_health_form_model.medicament_usage:
-                try:
-                    med_string = user_health_form_model.medicament_usage
-                    if isinstance(med_string, str):
-                        medication_names_from_form = [name.strip() for name in med_string.split(',') if name.strip()]
-                    elif isinstance(med_string, list):
-                        medication_names_from_form = [str(name).strip() for name in med_string if str(name).strip()]
-                except Exception as e:
-                    logging.error(f"Error parsing medicament_usage from HealthForm: {e}")
-            
-            if medication_names_from_form:
-                for med_name in medication_names_from_form:
-                    try:
-                        detected_relation = await self.interaction_checker.get_medication_timing(med_name=med_name)
-                    except Exception as e:
-                        logging.error(f"Failed to detect meal-med relation: {med_name} : {e}")
-                        detected_relation = WithMealRelation.unknown
-                    detected_relation = WithMealRelation.unknown
-                    relation_map = {
-                        WithMealRelation.unknown: "no data",
-                        WithMealRelation.empty_stomach: "on an empty stomach",
-                        WithMealRelation.before: "before meal",
-                        WithMealRelation.during: "during meal",
-                        WithMealRelation.after: "after meal",
-                    }
-                    default_desc_text = relation_map.get(detected_relation, "as directed")
-                    med_data = MedicationCreate(
-                        name=med_name,
-                        time=time(8, 0),
-                        with_meal_relation=detected_relation,
-                        description=f"Take: {default_desc_text}. (Auto-detected from FDA label)"
-                    )
-                    
-                    create_medication(
-                        db=self.db,
-                        plan_id=new_plan.id, 
-                        medication_data=med_data,
-                    )
+            try:
+                medication_names_from_form: List[str] = []
                 
-                try:
+                if user_health_form_model.medicament_usage:
+                    try:
+                        med_string = user_health_form_model.medicament_usage
+                        if isinstance(med_string, str):
+                            medication_names_from_form = [name.strip() for name in med_string.split(',') if name.strip()]
+                        elif isinstance(med_string, list):
+                            medication_names_from_form = [str(name).strip() for name in med_string if str(name).strip()]
+                    except Exception as e:
+                        logging.error(f"Error parsing medicament_usage from HealthForm: {e}")
+                
+                if medication_names_from_form:
+                    for med_name in medication_names_from_form:
+                        try:
+                            detected_relation = await self.interaction_checker.get_medication_timing(med_name=med_name)
+                        except Exception as e:
+                            logging.error(f"Failed to detect meal-med relation: {med_name} : {e}")
+                            detected_relation = WithMealRelation.unknown
+                        
+                        relation_map = {
+                            WithMealRelation.unknown: "no data",
+                            WithMealRelation.empty_stomach: "on an empty stomach",
+                            WithMealRelation.before: "before meal",
+                            WithMealRelation.during: "during meal",
+                            WithMealRelation.after: "after meal",
+                        }
+                        default_desc_text = relation_map.get(detected_relation, "as directed")
+                        med_data = MedicationCreate(
+                            name=med_name,
+                            time=time(8, 0),
+                            with_meal_relation=detected_relation,
+                            description=f"Take: {default_desc_text}. (Auto-detected from FDA label)"
+                        )
+                        
+                        create_medication(
+                            db=self.db,
+                            plan_id=new_plan.id, 
+                            medication_data=med_data,
+                        )
+                    
                     self.db.commit()
-                except Exception as e:
-                    logging.error(f"Error committing medications to database: {e}")
-                    self.db.rollback()
 
-                try:
-                    interactions = await self.interaction_checker.check_drug_interaction(medication_names_from_form)
-                except Exception as e:
-                    logging.error(f"Error checking drug interactions: {e}")
-                    interactions = []
-            
-            self.db.refresh(new_plan)
+                    try:
+                        interactions = await self.interaction_checker.check_drug_interaction(medication_names_from_form)
+                    except Exception as e:
+                        logging.error(f"Error checking drug interactions: {e}")
+                        interactions = []
+                
+                db_medications = get_medications_by_plan_id(self.db, new_plan.id)
 
-            db_medications = get_medications_by_plan_id(self.db, new_plan.id)
+            except Exception as e:
+                logging.error(f"Error processing medications, rolling back med section: {e}")
+                self.db.rollback()
+                interactions = []
+                db_medications = []
 
             final_plan_response = PlanResponse(
                 id=new_plan.id,
@@ -163,12 +168,14 @@ class PlanCreationService:
             return final_plan_response
 
         except ValueError as ve: 
+            self.db.rollback()
             logging.error(f"Spoonacular API or validation error: {ve}")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=f"Spoonacular service error: {ve}"
             )
         except Exception as e: 
+            self.db.rollback()
             logging.exception("Unexpected error during plan generation:") 
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -176,48 +183,51 @@ class PlanCreationService:
             )
     
     async def get_plan_by_date(self, user_id: int, plan_date: date):
-        user_plan = get_plan_with_meals_by_user_id_and_date(
-            db=self.db,
-            user_id=user_id,
-            plan_date=plan_date
-        )
-        health_form_model = self.health_form_service.get_health_form(user_id=user_id)
-        interactions: List[DrugInteractionResponse] = []
-        medication_names_from_form: List[str] = []
-
-        if health_form_model and health_form_model.medicament_usage:
-            try:
-                med_string = health_form_model.medicament_usage
-                if isinstance(med_string, str):
-                    medication_names_from_form = [name.strip() for name in med_string.split(',') if name.strip()]
-                elif isinstance(med_string, list):
-                    medication_names_from_form = [str(name).strip() for name in med_string if str(name).strip()]
-            except Exception as e:
-                logging.error(f"Error parsing medicament_usage from HealthForm: {e}")
-
-        if medication_names_from_form:
-            try:
-                interactions = await self.interaction_checker.check_drug_interaction(medication_names_from_form)
-            except Exception as e:
-                logging.error(f"Error checking drug interactions: {e}")
-                interactions = []
-
-        if not user_plan:
-            return PlanResponse(
-                id=0,
+        try:
+            user_plan = get_plan_with_meals_by_user_id_and_date(
+                db=self.db,
                 user_id=user_id,
-                created_by=user_id,
-                day_start=plan_date,
-                meals=[],
-                total_calories=0,
-                total_protein=0,
-                total_fat=0,
-                total_carbohydrates=0,
-                medications=[], 
-                interactions=interactions
+                plan_date=plan_date
             )
-        else:
+            
+            if not user_plan:
+                return PlanResponse(
+                    id=0,
+                    user_id=user_id,
+                    created_by=user_id,
+                    day_start=plan_date,
+                    meals=[],
+                    total_calories=0,
+                    total_protein=0,
+                    total_fat=0,
+                    total_carbohydrates=0,
+                    medications=[], 
+                    interactions=[]
+                )
+
+            health_form_model = self.health_form_service.get_health_form(user_id=user_id)
+            interactions: List[DrugInteractionResponse] = []
+            medication_names_from_form: List[str] = []
+
+            if health_form_model and health_form_model.medicament_usage:
+                try:
+                    med_string = health_form_model.medicament_usage
+                    if isinstance(med_string, str):
+                        medication_names_from_form = [name.strip() for name in med_string.split(',') if name.strip()]
+                    elif isinstance(med_string, list):
+                        medication_names_from_form = [str(name).strip() for name in med_string if str(name).strip()]
+                except Exception as e:
+                    logging.error(f"Error parsing medicament_usage from HealthForm: {e}")
+
+            if medication_names_from_form:
+                try:
+                    interactions = await self.interaction_checker.check_drug_interaction(medication_names_from_form)
+                except Exception as e:
+                    logging.error(f"Error checking drug interactions: {e}")
+                    interactions = []
+            
             db_medications = get_medications_by_plan_id(self.db, user_plan.id)
+            
             return PlanResponse(
                 id=user_plan.id,
                 user_id=user_plan.user_id,
@@ -231,12 +241,21 @@ class PlanCreationService:
                 medications=[MedicationResponse.model_validate(med) for med in db_medications],
                 interactions=interactions
             )
+        except Exception as e:
+            logging.error(f"Error fetching plan: {e}")
+            return PlanResponse(
+                id=0,
+                user_id=user_id,
+                created_by=user_id,
+                day_start=plan_date,
+                meals=[],
+                total_calories=0,
+                total_protein=0, total_fat=0, total_carbohydrates=0,
+                medications=[], interactions=[]
+            )
 
     async def add_meal_manually(self, plan_id: int, meal_request: ManualMealAddRequest) -> MealResponse:
-        plan = get_plan_with_meals_by_user_id_and_date(self.db, plan_id)
-        if not plan:
-            raise ValueError(f"Plan ID {plan_id} not found.")
-        
+        plan = get_plan_with_meals_by_user_id_and_date(self.db, plan_id) 
         recipe_info = await self.spoonacular_service.get_recipe_information(
             meal_request.spoonacular_recipe_id
         )
@@ -255,7 +274,7 @@ class PlanCreationService:
         )
 
         return MealResponse.model_validate(new_meal_orm)
-    
+
     async def get_shopping_list_for_user(self, user_id, plan_date: date):
         user_plan = get_plan_with_meals_by_user_id_and_date(self.db, user_id, plan_date)
         if not user_plan:
