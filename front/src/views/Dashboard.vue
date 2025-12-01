@@ -1,213 +1,188 @@
 <template>
-    <div class="container">
-        <h1>Health Dashboard!</h1>
-            <div>
-                <div class="date-change-log">
-                    <p id="date">Today's overview: {{todayDisplay}}</p>
-                    <RouterLink to="/health-form">Change Health metrics</RouterLink>
-                </div>
-                <div v-if="isLoading" class="loading-state">
-                    <p>Loading your dashboard...</p>
-                    <div class="spinner"></div>
-                </div>
-                <div v-else-if="error" class="error-state">
-                    <p>{{ error }}</p>
-                    <p>Could not load dashboard data. Please try again later.</p>
-                    <RouterLink to="/health-form" class="btn-primary">Check Health Metrics</RouterLink>
-                </div>
-                <div v-else class="dashboard-content">
-                    <Stats :stats="stats"></Stats>
-                    <TodayInfo :cardsData="cards_data"
-                                @mark-read="handleMarkAsRead"></TodayInfo>
-                </div>
-                
-            </div> 
-    </div>
+    <div class="dashboard-container">
+        <header class="header">
+            <h1>Health Dashboard</h1>
+            <p>Overview for <span class="highlight">{{ todayDisplay }}</span></p>
+        </header>
 
+        <div class="grid-actions">
+            <RouterLink to="/health-form" class="card action primary">
+                <span>Update Metrics</span>
+            </RouterLink>
+            <RouterLink to="/todays-plan" class="card action">
+                <span>Today's Plan</span>
+            </RouterLink>
+            <RouterLink to="/dependents" class="card action">
+                <span>Dependents</span>
+            </RouterLink>
+        </div>
+
+        <div v-if="isLoading" class="loading">Loading...</div>
+        <div v-else-if="error" class="error">{{ error }}</div>
+        
+        <div v-else class="content-wrapper">
+            <div class="stats-row">
+                <div v-for="(s, i) in stats" :key="i" class="card stat-card">
+                    <small>{{ s.title }}</small>
+                    <div class="value">{{ s.value }} <span class="unit">{{ s.unit }}</span></div>
+                </div>
+            </div>
+
+            <div class="grid-info">
+                <div v-for="(card, i) in cards_data" :key="i" class="card info-card">
+                    <h3>{{ card.title }}</h3>
+                    <ul>
+                        <li v-for="item in card.content" :key="item.id">
+                            {{ item.text }}
+                            <button v-if="card.title === 'Notifications' && item.id !== 'notify-empty'" 
+                                    @click="handleMarkAsRead(item.id)" class="btn-check">✓</button>
+                        </li>
+                    </ul>
+                    <RouterLink v-if="['Todays medication', 'Todays meals'].includes(card.title)" to="" class="footer-link">
+                        View Full Schedule!
+                    </RouterLink>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
+
 <script setup>
-import {onMounted, ref, renderSlot} from "vue"
-import Stats from "@/components/dashboard/Stats.vue";
-import TodayInfo from "@/components/dashboard/TodayInfo.vue";
-import api, {getMyNotification, getPlanByDate, markNotificationAsRead} from "@/lib/api.js"
+import { onMounted, ref } from "vue"
+import api, { getMyNotification, getPlanByDate, markNotificationAsRead } from "@/lib/api.js"
+
 const isLoading = ref(true);
 const error = ref(null)
-const today = new Date().toDateString();
 const todayDisplay = new Date().toDateString();
 const todayApi = new Date().toISOString().split('T')[0];
 
-const formatTime = (inputTime) => {
-    if (!inputTime) return '';
-    try {
-        if (inputTime.includes('T')) {
-            inputTime = inputTime.split('T')[1];
-        }
-        const parts = inputTime.split(":");
-        return `${parts[0]}:${parts[1]}`;
-    } catch (e) {
-        return String(inputTime).substring(0, 5);
-    }
+const formatTime = (t) => {
+    if (!t) return '';
+    try { return t.includes('T') ? t.split('T')[1].substring(0, 5) : String(t).substring(0, 5); } 
+    catch (e) { return ''; }
 };
+
 const cards_data = ref([
-    {
-        title: "Todays medication",
-        content: [],
-    },
-    {
-        title: "Todays meals",
-        content: []
-    },
-    {
-        title: "Interaction alerts",
-        content: []
-    },
-    {
-        title: "Notifications",
-        content: [],
-    }
+    { title: "Todays medication", content: [] },
+    { title: "Todays meals", content: [] },
+    { title: "Interaction alerts", content: [] },
+    { title: "Notifications", content: [] }
 ])
 
 const stats = ref([
-    {
-        title: "Medications Taken",
-        value: 0,
-        unit: "/0",
-    },
-    {
-        title: "Target Calories",
-        value: 0,
-        unit: "kcal",
-    },
-    {
-        title: "Health Score",
-        value: 95, //in future there will be algorithm for this :keku:
-        unit: "%",
-    },
+    { title: "Medications Taken", value: 0, unit: "/0" },
+    { title: "Target Calories", value: 0, unit: "kcal" },
+    { title: "Health Score", value: 95, unit: "%" },
 ])
+
 const getStats = async () => {
     isLoading.value = true;
     error.value = null;
-    const results = await Promise.allSettled([
+    
+    const [planResult, notifResult] = await Promise.allSettled([
         getPlanByDate(todayApi),
         getMyNotification()
     ]);
-    const planResult = results[0];
-    const notificationResult = results[1];
+
     if (planResult.status === 'fulfilled') {
-        const planData = planResult.value.data;
-        if (planData.medications?.length > 0) {
-            const takenCount = planData.medications.filter(med => med.taken).length;
-            const totalCount = planData.medications.length;
-            stats.value[0].value = takenCount;
-            stats.value[0].unit = `/${totalCount}`;
+        const data = planResult.value.data;
+        
+        // Stats
+        if (data.medications?.length) {
+            stats.value[0].value = data.medications.filter(m => m.taken).length;
+            stats.value[0].unit = `/${data.medications.length}`;
         }
-        if (planData.total_calories > 0) {
-            stats.value[1].value = planData.total_calories;
+        
+        if (data.total_calories > 0) {
+            stats.value[1].value = data.total_calories;
         } else {
             try {
-                const calorieResponse = await api.get("/api/v1/health-form/me/calories");
-                stats.value[1].value = calorieResponse?.data?.target_calories ?? 0;
+                const cal = await api.get("/api/v1/health-form/me/calories");
+                stats.value[1].value = cal?.data?.target_calories ?? 0;
             } catch (e) {}
         }
-        if (planData.medications?.length > 0) {
-            cards_data.value[0].content = planData.medications.map(med => ({
-                id: med.id,
-                text: `${med.name} at ${formatTime(med.time)}`
-            }));
-        } else {
-            cards_data.value[0].content = [{ id: 'med-empty', text: "No medications for today." }];
-        }
-        if (planData.meals?.length > 0) {
-            cards_data.value[1].content = planData.meals.map(meal => ({
-                id: meal.id,
-                text: `${meal.meal_type.toUpperCase()}: ${meal.description.split('.')[0]}`
-            }));
-        } else {
-            cards_data.value[1].content = [{ id: 'meal-empty', text: "No meals planned for today." }];
-        }
 
-        if (planData.interactions?.length > 0) {
-            cards_data.value[2].content = planData.interactions.map((alert, index) => ({
-                id: `int-${index}`,
-                text: `${alert.severity}: ${alert.medication_1} & ${alert.medication_2}`
-            }));
-        } else {
-            cards_data.value[2].content = [{ id: 'int-empty', text: "No significant interactions found." }];
-        }
+        // Cards Content
+        cards_data.value[0].content = data.medications?.length 
+            ? data.medications.map(m => ({ id: m.id, text: `${m.name} at ${formatTime(m.time)}` }))
+            : [{ id: 'empty', text: "No medications for today." }];
 
+        cards_data.value[1].content = data.meals?.length 
+            ? data.meals.map(m => ({ id: m.id, text: `${m.meal_type.toUpperCase()}: ${m.description.split('.')[0]}` }))
+            : [{ id: 'empty', text: "No meals planned for today." }];
+
+        cards_data.value[2].content = data.interactions?.length 
+            ? data.interactions.map((a, i) => ({ id: i, text: `${a.severity}: ${a.medication_1} & ${a.medication_2}` }))
+            : [{ id: 'empty', text: "No significant interactions found." }];
     } else {
-        cards_data.value[0].content = [{ id: 'no-plan-med', text: "Plan not created yet." }];
-        cards_data.value[1].content = [{ id: 'no-plan-meal', text: "Plan not created yet." }];
-        cards_data.value[2].content = [{ id: 'no-plan-int', text: "No data available." }];
+        ['medication', 'meals', 'alerts'].forEach((k, i) => cards_data.value[i].content = [{id: 'err', text: "Plan not created yet."}]);
     }
 
-    if (notificationResult.status === 'fulfilled') {
-        const notifications = notificationResult.value.data;
-        if (notifications?.length > 0) {
-            cards_data.value[3].content = notifications.map(n => ({
-                id: n.id,
-                text: `[${formatTime(n.sent_at.split('T')[1])}] ${n.message}`
-            }));
-        } else {
-            cards_data.value[3].content = [{ id: 'notify-empty', text: "No new notifications." }];
-        }
+    if (notifResult.status === 'fulfilled' && notifResult.value.data?.length) {
+        cards_data.value[3].content = notifResult.value.data.map(n => ({
+            id: n.id, text: `[${formatTime(n.sent_at)}] ${n.message}`
+        }));
     } else {
-        cards_data.value[3].content = [{ id: 'notify-err', text: "Could not load notifications." }];
+        cards_data.value[3].content = [{ id: 'empty', text: "No new notifications." }];
     }
 
     isLoading.value = false;
 }
-const handleMarkAsRead = async (notificationID) => {
-    try{
-        await markNotificationAsRead(notificationID);
-        await getStats()
-        const notificationsCard = cards_data.value.find(c => c.title === "Notifications");
-        if (notificationsCard) {
-            notificationsCard.content = notificationsCard.content.filter(n => n.id !== notificationID);
-            if (notificationsCard.content.length === 0) {
-                notificationsCard.content = [{ id: 'notify-empty', text: "No new notifications." }];
-        }}
-    }catch(e) {
-        console.error("Failed to mark as read:", e);
-    }
+
+const handleMarkAsRead = async (id) => {
+    try { await markNotificationAsRead(id); await getStats(); } catch (e) { console.error(e); }
 };
 
-onMounted(() => {
-    getStats()
-})
+onMounted(getStats);
 </script>
 
 <style scoped>
-.date-change-log {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  padding: 1rem;
-  background-color: var(--white-color);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-sm);
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    font-family: sans-serif;
+    color: #333;
 }
 
-.date-change-log p {
-  margin: 0;
-  font-size: 1rem;
-  color: var(--text-color-dark);
-}
+.header { margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
+.header h1 { margin: 0; font-size: 1.8rem; }
+.highlight { color: var(--primary-color, #4CAF50); font-weight: bold; }
 
-.date-change-log button {
-  padding: 8px 16px;
-  border-radius: var(--border-radius-md);
-  border: none;
-  background-color: var(--primary-color);
-  color: var(--white-color);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.grid-actions, .grid-info, .stats-row {
+    display: grid;
+    gap: 1.5rem;
 }
+.grid-actions { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem; }
+.grid-info { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.stats-row { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 2rem; }
 
-.date-change-log button:hover {
-  background-color: var(--primary-color-hover);
-  transform: translateY(-2px);
+.card {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+    border: 1px solid #f0f0f0;
 }
+.card:hover { transform: translateY(-2px); border-color: var(--primary-color, #4CAF50); }
+
+.action { 
+    display: flex; align-items: center; gap: 10px; 
+    text-decoration: none; color: #333; font-weight: 600; 
+}
+.action.primary { border-left: 4px solid var(--primary-color, #4CAF50); }
+
+.stat-card { text-align: center; }
+.stat-card .value { font-size: 2rem; font-weight: bold; color: var(--primary-color, #4CAF50); }
+.stat-card .unit { font-size: 1rem; color: #888; }
+
+.info-card h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+.info-card ul { padding-left: 0; list-style: none; }
+.info-card li { padding: 8px 0; border-bottom: 1px solid #f9f9f9; display: flex; justify-content: space-between; }
+.footer-link { display: block; margin-top: 1rem; color: var(--primary-color, #4CAF50); text-decoration: none; font-weight: bold; font-size: 0.9rem; }
+
+.btn-check { border: none; background: none; color: green; cursor: pointer; font-weight: bold; }
+.loading, .error { text-align: center; padding: 2rem; }
+.error { color: red; }
 </style>
