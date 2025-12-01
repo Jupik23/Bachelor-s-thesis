@@ -1,6 +1,7 @@
 import os
 import httpx
 import logging
+import asyncio
 from typing import Dict, Any, List, Optional
 from app.schemas.health_form import HealthFormCreate
 from app.schemas.spoonacular import DailyPlanResponse, WeeklyPlanResponse, ComplexSearchResponse, RecipeResponse
@@ -89,6 +90,85 @@ class Spoonacular:
         params["targetCalories"] = target_calories
         return params
 
+    async def generate_structured_plan(self, health_form: HealthFormCreate, meal_types: List[str]) -> DailyPlanResponse:
+        params = self._format_diet_params(health_form)
+        total_calories = params.get("targetCalories", 2000)
+        num_meals = len(meal_types)
+        
+        avg_calories = total_calories / num_meals
+        min_cal = int(avg_calories * 0.7) 
+        max_cal = int(avg_calories * 1.3)
+
+        diet = params.get("diet")
+        intolerances = params.get("intolerances")
+
+        async def fetch_recipe_for_slot(query_type: str):
+            search_params = {
+                "type": query_type,
+                "minCalories": min_cal,
+                "maxCalories": max_cal,
+                "number": 1,
+                "sort": "random", 
+                "addRecipeInformation": "true",
+                "addRecipeNutrition": "true", # KLUCZOWA POPRAWKA DLA MAKROSKŁADNIKÓW
+                "instructionsRequired": "true",
+                "fillIngredients": "false"
+            }
+            if diet: search_params["diet"] = diet
+            if intolerances: search_params["intolerances"] = intolerances
+
+            try:
+                result = await self._make_request("recipes/complexSearch", params=search_params)
+                results = result.get("results", [])
+                if results:
+                    return results[0]
+                return None
+            except Exception as e:
+                logging.error(f"Error fetching recipe for type {query_type}: {e}")
+                return None
+
+        tasks = [fetch_recipe_for_slot(m_type) for m_type in meal_types]
+        recipes = await asyncio.gather(*tasks)
+
+        valid_recipes = [r for r in recipes if r is not None]
+
+        meals_response = []
+        total_cals = 0.0
+        total_prot = 0.0
+        total_fat = 0.0
+        total_carb = 0.0
+
+        for recipe in valid_recipes:
+            nutrients = recipe.get("nutrition", {}).get("nutrients", [])
+            
+            cal = next((n['amount'] for n in nutrients if n['name'] == 'Calories'), 0)
+            prot = next((n['amount'] for n in nutrients if n['name'] == 'Protein'), 0)
+            fat = next((n['amount'] for n in nutrients if n['name'] == 'Fat'), 0)
+            carb = next((n['amount'] for n in nutrients if n['name'] == 'Carbohydrates'), 0)
+
+            total_cals += cal
+            total_prot += prot
+            total_fat += fat
+            total_carb += carb
+
+            meals_response.append({
+                "id": recipe["id"],
+                "title": recipe["title"],
+                "readyInMinutes": recipe["readyInMinutes"],
+                "servings": recipe["servings"],
+                "sourceUrl": recipe["sourceUrl"]
+            })
+
+        return DailyPlanResponse(
+            meals=meals_response,
+            nutrients={
+                "calories": round(total_cals, 2),
+                "protein": round(total_prot, 2),
+                "fat": round(total_fat, 2),
+                "carbohydrates": round(total_carb, 2)
+            }
+        )
+
     async def generate_meal_plan(self, health_form: HealthFormCreate, time_frame: str = "day"):
         if time_frame not in ["day", "week"]:
             raise ValueError("time_frame must be 'day' or 'week'.")
@@ -139,7 +219,7 @@ class Spoonacular:
 
     async def get_recipe_information(self, recipe_id: int) -> Optional[RecipeResponse]:
         endpoint = f"recipes/{recipe_id}/information"
-        params = {"includeNutrition": "false"}
+        params = {"includeNutrition": "true"}
         
         data = await self._make_request(endpoint, params=params)
         

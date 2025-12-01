@@ -38,7 +38,7 @@
                                     @click="handleMarkAsRead(item.id)" class="btn-check">✓</button>
                         </li>
                     </ul>
-                    <RouterLink v-if="['Todays medication', 'Todays meals'].includes(card.title)" to="" class="footer-link">
+                    <RouterLink v-if="['Todays medication', 'Todays meals'].includes(card.title)" to="/todays-plan" class="footer-link">
                         View Full Schedule!
                     </RouterLink>
                 </div>

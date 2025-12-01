@@ -114,19 +114,30 @@ const changeDate = (days) => {
 
 const generatePlan = async () => {
     isLoading.value = true;
+    
+    // --- DEBUG LOGS START ---
+    console.log("=== GENERATING PLAN DEBUG ===");
+    console.log("Current Date Object:", currentDate.value);
+    console.log("Formatted API Date (apiDateFormat):", apiDateFormat.value);
+    // --- DEBUG LOGS END ---
+
+    const params = { plan_date: apiDateFormat.value };
+    console.log("Final Params being sent to API:", params);
+
     try {
       let response;
       if (isDependentView.value){
-        response = await api.post(`api/v1/dependents/${dependentId.value}/plan/generate`)
+        response = await api.post(`api/v1/dependents/${dependentId.value}/plan/generate`,
+          null,
+          { params: params}
+        )
       }else{
-        response = await api.post(`api/v1/meals/generate`)
+        response = await api.post(`api/v1/meals/generate`, null,
+          {params: params}
+        )
       }
-      if (isToday.value) {
-             planData.value = response.data;
-      } else {
-            currentDate.value = new Date();
-            planData.value = response.data;
-      }
+      planData.value = response.data;
+      
     } catch (e) {
         console.log("Error: ", e);
         error.value = e.response?.data?.detail || "Could not generate meal plan";
@@ -134,6 +145,7 @@ const generatePlan = async () => {
         isLoading.value = false;
     }
 }
+
 const loadInitialData = async () => {
     isLoading.value = true;
     error.value = null;
@@ -295,7 +307,7 @@ async function handleReplaceMeal({mealId, newRecipeId}){
   }
 }
 watch(() => route.params.id, () => {
-    loadPlanData();
+    loadInitialData();
 });
 
 onMounted(() => {

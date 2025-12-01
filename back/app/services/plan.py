@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from datetime import date, time
 import logging
-from typing import List
+from typing import List, Optional
 import os
 import asyncio
 from fastapi import HTTPException, status
@@ -20,17 +20,40 @@ from app.crud.meals import create_meal, get_meal_by_id
 from app.schemas.medication import MedicationCreate
 
 
-MEAL_MAPPING_3_MEALS = {
-    0: (MealType.breakfast, time(8, 0)),
-    1: (MealType.lunch, time(13, 0)),
-    2: (MealType.dinner, time(18, 0)),
-}
-MEAL_MAPPING_5_MEALS = {
-    0: (MealType.breakfast, time(7, 30)),
-    1: (MealType.second_breakfast, time(10, 30)),
-    2: (MealType.lunch, time(13, 30)),
-    3: (MealType.snack, time(16, 30)),
-    4: (MealType.dinner, time(19, 30)), 
+MEAL_TEMPLATES = {
+    1: [
+        (MealType.lunch, time(13, 0), "main course")
+    ],
+    2: [
+        (MealType.breakfast, time(9, 0), "breakfast"),
+        (MealType.dinner, time(17, 0), "main course")
+    ],
+    3: [
+        (MealType.breakfast, time(8, 0), "breakfast"),
+        (MealType.lunch, time(13, 0), "main course"),
+        (MealType.dinner, time(18, 0), "main course")
+    ],
+    4: [
+        (MealType.breakfast, time(8, 0), "breakfast"),
+        (MealType.lunch, time(12, 0), "main course"),
+        (MealType.snack, time(15, 30), "snack"),
+        (MealType.dinner, time(19, 0), "main course")
+    ],
+    5: [
+        (MealType.breakfast, time(7, 30), "breakfast"),
+        (MealType.second_breakfast, time(10, 30), "snack"),
+        (MealType.lunch, time(13, 30), "main course"),
+        (MealType.snack, time(16, 30), "snack"),
+        (MealType.dinner, time(19, 30), "main course")
+    ],
+    6: [
+        (MealType.breakfast, time(7, 0), "breakfast"),
+        (MealType.second_breakfast, time(10, 0), "snack"),
+        (MealType.lunch, time(13, 0), "main course"),
+        (MealType.snack, time(16, 0), "snack"),
+        (MealType.dinner, time(18, 30), "main course"),
+        (MealType.dinner, time(21, 0), "snack") 
+    ]
 }
 
 class PlanCreationService:
@@ -41,7 +64,10 @@ class PlanCreationService:
         self.interaction_checker = DrugInteractionService(db=self.db, fda_api_key=fda_key)
         self.health_form_service = HealthFormService(db)
 
-    async def generate_and_save_plan(self, created_by_id, user_id, time_frame: str = "day"):
+    async def generate_and_save_plan(self, created_by_id: int, user_id: int, time_frame: str = "day", plan_date: Optional[date] = None):
+        if plan_date is None:
+            plan_date = date.today()
+
         user_health_form_model = self.health_form_service.get_health_form(user_id=user_id)
 
         if not user_health_form_model:
@@ -52,35 +78,39 @@ class PlanCreationService:
         except Exception as e:
             raise ValueError(f"Data from health_form are not correctly: {e}")
         
+        num_meals = max(1, min(6, user_health_form_data.number_of_meals_per_day))
+        template = MEAL_TEMPLATES.get(num_meals, MEAL_TEMPLATES[3])
+        spoonacular_query_types = [item[2] for item in template]
+
         try:
-            plan_response_spoonacular: DailyPlanResponse = await self.spoonacular_service.generate_meal_plan(
+            plan_response_spoonacular: DailyPlanResponse = await self.spoonacular_service.generate_structured_plan(
                 health_form=user_health_form_data,
-                time_frame=time_frame
+                meal_types=spoonacular_query_types
             )
-            if plan_response_spoonacular is None or not hasattr(plan_response_spoonacular, 'meals'):
-                raise ValueError("Received invalid plan data from Spoonacular.")
-            
+
+            if plan_response_spoonacular is None or not plan_response_spoonacular.meals:
+                 raise ValueError("Spoonacular returned no meals matching the criteria.")
+
             plan_data = PlanCreate(
                 user_id=user_id,
                 created_by=created_by_id,
-                day_start=date.today(),
+                day_start=plan_date, 
                 total_calories=plan_response_spoonacular.nutrients.calories,
                 total_protein=plan_response_spoonacular.nutrients.protein,
                 total_fat=plan_response_spoonacular.nutrients.fat,
                 total_carbohydrates=plan_response_spoonacular.nutrients.carbohydrates,
             )
             new_plan = create_plan(db=self.db, plan_data=plan_data)
-            num_meals = user_health_form_data.number_of_meals_per_day
-            meal_mapping = MEAL_MAPPING_5_MEALS if num_meals > 3 else MEAL_MAPPING_3_MEALS
-
+            
             for index, meal_data in enumerate(plan_response_spoonacular.meals):
-                if index not in meal_mapping:
-                    continue
-                meal_type, meal_time = meal_mapping[index]
+                if index >= len(template): break
+                
+                meal_type_enum, meal_time, _ = template[index]
+                
                 create_meal(
                     db=self.db,
                     plan_id=new_plan.id,
-                    meal_type=meal_type,
+                    meal_type=meal_type_enum,
                     time=meal_time,
                     description=f"{meal_data.title}",
                     spoonacular_recipe_id=meal_data.id
@@ -108,7 +138,7 @@ class PlanCreationService:
                     except Exception as e:
                         logging.error(f"Failed to detect meal-med relation: {med_name} : {e}")
                         detected_relation = WithMealRelation.unknown
-                    detected_relation = WithMealRelation.unknown
+                    
                     relation_map = {
                         WithMealRelation.unknown: "no data",
                         WithMealRelation.empty_stomach: "on an empty stomach",
