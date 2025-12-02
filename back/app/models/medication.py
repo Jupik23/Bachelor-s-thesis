@@ -16,3 +16,12 @@ class Medication(Base):
     description = Column(String, nullable=True)
 
     plan = relationship("Plan", back_populates="medications")
+
+class PolishMedication(Base):
+    __tablename__ = "polish_medications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    trade_name = Column(String, index=True, nullable=False)       
+    active_substance = Column(String, index=True, nullable=True)  
+    strength = Column(String, nullable=True)
+    form = Column(String, nullable=True)

@@ -117,15 +117,12 @@ const generatePlan = async () => {
     try {
       let response;
       if (isDependentView.value){
-        response = await api.post(`api/v1/dependents/${dependentId.value}/plan/generate`)
+        response = await api.post(`api/v1/dependents/${dependentId.value}/plan/generate?plan_date=${apiDateFormat.value}`)
       }else{
-        response = await api.post(`api/v1/meals/generate`)
+        response = await api.post(`api/v1/meals/generate?plan_date=${apiDateFormat.value}`)
       }
-      if (isToday.value) {
-             planData.value = response.data;
-      } else {
-            currentDate.value = new Date();
-            planData.value = response.data;
+      if(response.data) {
+        planData.value = response.data;
       }
     } catch (e) {
         console.log("Error: ", e);

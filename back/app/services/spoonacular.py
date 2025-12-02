@@ -24,7 +24,7 @@ class Spoonacular:
     async def _make_request(self, endpoint: str, params: Dict[str, Any] = None) -> Dict:
         if params is None:
             params = {}
-            
+
         params["apiKey"] = self.api_key
         endpoint = endpoint.lstrip("/")
         full_url = f"{self.base}/{endpoint}"
@@ -49,12 +49,16 @@ class Spoonacular:
     def _validate_list_param(self, items: Optional[List[str] | str], allowed_set: set) -> Optional[str]:
         if not items:
             return None
+
         if isinstance(items, str):
             items_list = items.split(',')
         else:
             items_list = items
 
-        valid_items = [i.strip().lower() for i in items_list if i.strip().lower() in allowed_set]
+        valid_items = [
+            i.strip().lower() for i in items_list 
+            if i.strip().lower() in allowed_set
+            ]
         return ','.join(valid_items) if valid_items else None
 
     def _format_diet_params(self, health_form: HealthFormCreate) -> Dict[str, Any]:

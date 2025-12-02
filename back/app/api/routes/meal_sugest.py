@@ -1,5 +1,5 @@
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.utils.jwt import get_current_user
@@ -19,7 +19,8 @@ router = APIRouter(prefix="/api/v1/meals", tags=["meals"])
 @router.post("/generate", response_model=PlanResponse)
 async def generate_plan(db: Session = Depends(get_database), 
                         user: Session = Depends(get_current_user),
-                        range: str = "day"):
+                        range: str = "day",
+                        plan_date: date = Query(default_factory=date.today)):
     if range != "day":
          raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -32,7 +33,8 @@ async def generate_plan(db: Session = Depends(get_database),
         new_plan = await plan_service.generate_and_save_plan(
             user_id=user.id, 
             created_by_id=user.id, 
-            time_frame=range
+            time_frame=range,
+            plan_date=plan_date
         )
         return new_plan
         

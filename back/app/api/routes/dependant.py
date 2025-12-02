@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import date
@@ -67,10 +67,12 @@ async def get_dependent_plan_by_date(
 async def generate_dependent_plan(
     dependent_id: int,
     db: Session = Depends(get_database),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    plan_date: date = Query(defaultfactory=date.today)
 ):
     service = DependentService(db)
     return await service.generate_dependent_plan(
         carer_id=current_user.id,
-        dependent_id=dependent_id
+        dependent_id=dependent_id,
+        plan_date=plan_date
     )

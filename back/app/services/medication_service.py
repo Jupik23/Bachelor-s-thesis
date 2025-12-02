@@ -9,12 +9,14 @@ from app.schemas.drug_interaction import (DrugInteractionCreate, DrugInteraction
 from app.crud.medication import create_medication
 from app.crud.drug_interaction import get_interaction, create_new_drug_interaction
 from app.models.common import WithMealRelation
+#from app.services.rpl_service import RPLService
 
 class DrugInteractionService:
     def __init__(self, db: Session, fda_api_key: Optional[str]):
         self.db = db
         self.openfda_base = "https://api.fda.gov/drug"
         self.api_key = fda_api_key
+        #self.rpl_service - RPLService(db=self.db)
 
     async def _make_request(self, url: str, params: Dict[str, Any] = None):
         if params is None:

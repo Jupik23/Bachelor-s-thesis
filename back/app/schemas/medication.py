@@ -9,6 +9,8 @@ class MedicationCreate(BaseModel):
     time: time
     with_meal_relation: WithMealRelation
     description: str
+    source: Optional[str] = "fda"
+    active_substance: Optional[str] = None
 
 class MedicationResponse(MedicationCreate):
     id: int

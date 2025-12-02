@@ -76,7 +76,7 @@ class DependentService:
                 detail=f"Error while getting dependent's plan: {e}"
             )
         
-    async def generate_dependent_plan(self, carer_id: int, dependent_id: int) -> PlanResponse:
+    async def generate_dependent_plan(self, carer_id: int, dependent_id: int, plan_date: date) -> PlanResponse:
         has_relation = crud_care_relation.check_relation(
             db=self.db,
             carer_id=carer_id,
@@ -94,7 +94,8 @@ class DependentService:
             plan_data = await plan_service.generate_and_save_plan(
                 created_by_id=carer_id,
                 user_id=dependent_id,
-                time_frame="day"
+                time_frame="day",
+                plan_date=plan_date
             )
             return plan_data
         except ValueError as ve:
