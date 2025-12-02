@@ -50,19 +50,22 @@ async def generate_plan(db: Session = Depends(get_database),
 @router.get('/date/{date_str}', response_model=PlanResponse) 
 async def get_plan_by_specific_date(
     date_str: date,
-    db:Session = Depends(get_database),
+    db: Session = Depends(get_database),
     user: Session = Depends(get_current_user)
 ):
     plan_service = PlanCreationService(db)
+    logging.info(f"Fetching plan for user_id={user.id}, date={date_str}")
     try:
         plan_data = await plan_service.get_plan_by_date(user_id=user.id, plan_date=date_str)
+        logging.info(f"Plan found: id={plan_data.id}, meals_count={len(plan_data.meals)}")
+        
         return plan_data
     except Exception as e:
+        logging.error(f"Error while getting plan: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error while geting plan: {e}"
-            )
-    
+            detail=f"Error while getting plan: {e}"
+        )
 @router.post(
     "/{plan_id}/meals", 
     response_model=MealResponse, 

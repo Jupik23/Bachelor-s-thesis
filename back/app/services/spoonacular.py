@@ -24,7 +24,7 @@ class Spoonacular:
     async def _make_request(self, endpoint: str, params: Dict[str, Any] = None) -> Dict:
         if params is None:
             params = {}
-
+            
         params["apiKey"] = self.api_key
         endpoint = endpoint.lstrip("/")
         full_url = f"{self.base}/{endpoint}"
@@ -32,11 +32,11 @@ class Spoonacular:
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.get(
-                    full_url,
-                    params=params,
+                    full_url, 
+                    params=params, 
                     headers=self.headers,
-                    timeout=15.0
-                )
+                      timeout=15.0
+                      )
                 response.raise_for_status()
                 return response.json()
             except httpx.HTTPStatusError as e:
@@ -49,20 +49,13 @@ class Spoonacular:
     def _validate_list_param(self, items: Optional[List[str] | str], allowed_set: set) -> Optional[str]:
         if not items:
             return None
-            
         if isinstance(items, str):
             items_list = items.split(',')
         else:
             items_list = items
 
-        valid_items = [
-            i.strip().lower() for i in items_list 
-            if i.strip().lower() in allowed_set
-        ]
-        
-        if valid_items:
-            return ','.join(valid_items)
-        return None
+        valid_items = [i.strip().lower() for i in items_list if i.strip().lower() in allowed_set]
+        return ','.join(valid_items) if valid_items else None
 
     def _format_diet_params(self, health_form: HealthFormCreate) -> Dict[str, Any]:
         params = {}
@@ -82,7 +75,7 @@ class Spoonacular:
             age=health_form.age
         )
         target_calories = calc.calculate_target_calories(
-            bmr, 
+            bmr,
             health_form.activity_level,
             health_form.calorie_goal
         )
@@ -94,10 +87,77 @@ class Spoonacular:
             raise ValueError("time_frame must be 'day' or 'week'.")
 
         params = self._format_diet_params(health_form)
-        params.update({"timeFrame": time_frame})
+        num_meals = health_form.number_of_meals_per_day
 
-        data = await self._make_request("mealplanner/generate", params=params)
-        
+        if num_meals <= 3:
+            params.update({"timeFrame": time_frame})
+            data = await self._make_request("mealplanner/generate", params=params)
+        else:
+            params.update({"timeFrame": time_frame})
+            data = await self._make_request("mealplanner/generate", params=params)
+
+            target_calories = params["targetCalories"]
+            base_meal_calories = target_calories / 3
+            additional_meals_needed = num_meals - 3
+            calories_per_meal = target_calories / num_meals
+
+            search_queries = ["healthy snack", "light meal", "protein snack"]
+            additional_meals = []
+
+            for i in range(additional_meals_needed):
+                query = search_queries[i % len(search_queries)]
+                search_params = {
+                    "query": query,
+                    "number": 1,
+                    "maxCalories": int(calories_per_meal * 1.2),
+                    "minCalories": int(calories_per_meal * 0.8),
+                    "addRecipeInformation": "true",
+                    "instructionsRequired": "true"
+                }
+                if params.get('diet'):
+                    search_params['diet'] = params['diet']
+                if params.get('intolerances'):
+                    search_params['intolerances'] = params['intolerances']
+
+                search_result = await self._make_request("recipes/complexSearch", params=search_params)
+                if search_result.get('results'):
+                    recipe = search_result['results'][0]
+                    additional_meals.append({
+                        'id': recipe.get('id'),
+                        'title': recipe.get('title'),
+                        'readyInMinutes': recipe.get('readyInMinutes', 15),
+                        'servings': recipe.get('servings', 1)
+                    })
+
+            if additional_meals:
+                original_meals = data.get('meals', [])
+                new_meals = []
+
+                if original_meals:
+                    new_meals.append(original_meals[0])
+
+                meals_to_insert_morning = min(additional_meals_needed // 2, len(additional_meals))
+                for i in range(meals_to_insert_morning):
+                    new_meals.append(additional_meals[i])
+
+                if len(original_meals) > 1:
+                    new_meals.append(original_meals[1])
+
+                for i in range(meals_to_insert_morning, len(additional_meals)):
+                    new_meals.append(additional_meals[i])
+
+                if len(original_meals) > 2:
+                    new_meals.append(original_meals[2])
+
+                data['meals'] = new_meals
+
+                if 'nutrients' in data:
+                    adjustment_factor = num_meals / 3
+                    data['nutrients']['calories'] = int(data['nutrients'].get('calories', 0) * adjustment_factor)
+                    data['nutrients']['protein'] = round(data['nutrients'].get('protein', 0) * adjustment_factor, 2)
+                    data['nutrients']['fat'] = round(data['nutrients'].get('fat', 0) * adjustment_factor, 2)
+                    data['nutrients']['carbohydrates'] = round(data['nutrients'].get('carbohydrates', 0) * adjustment_factor, 2)
+
         try:
             if time_frame == "day":
                 return DailyPlanResponse(**data)
@@ -108,17 +168,17 @@ class Spoonacular:
             raise ValueError(f"Invalid response structure: {e}")
 
     async def search_recipies(
-        self, 
-        query: str, 
+        self,
+        query: str,
         diet: Optional[List[str]] = None,
-        intolerances: Optional[List[str]] = None, 
+        intolerances: Optional[List[str]] = None,
         number: int = 10
     ) -> ComplexSearchResponse:
         endpoint = "recipes/complexSearch"
         params = {
             "query": query,
             "number": number,
-            "addRecipeInformation": "true", 
+            "addRecipeInformation": "true",
             "instructionsRequired": "true"
         }
 
@@ -131,19 +191,10 @@ class Spoonacular:
             params["intolerances"] = intolerances_param
 
         data = await self._make_request(endpoint, params=params)
-
-        if data:
-            return ComplexSearchResponse.model_validate(data)
-        else:
-            return ComplexSearchResponse(results=[], totalResults=0)
+        return ComplexSearchResponse.model_validate(data) if data else ComplexSearchResponse(results=[], totalResults=0)
 
     async def get_recipe_information(self, recipe_id: int) -> Optional[RecipeResponse]:
         endpoint = f"recipes/{recipe_id}/information"
         params = {"includeNutrition": "false"}
-        
         data = await self._make_request(endpoint, params=params)
-        
-        if data:
-            return RecipeResponse.model_validate(data)
-        else:
-            return None
+        return RecipeResponse.model_validate(data) if data else None

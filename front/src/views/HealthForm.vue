@@ -73,7 +73,7 @@
       @search-change="onMedicationSearch"
       :loading="isSearchingMed"
       :internal-search="false" 
-      :clear-on-select="false"
+      :clear-on-select="true"
       :close-on-select="false"
       :options-limit="5"
       placeholder="Type medication names (press Enter after each)"

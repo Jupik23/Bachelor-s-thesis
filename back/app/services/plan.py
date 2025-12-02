@@ -20,18 +20,56 @@ from app.crud.meals import create_meal, get_meal_by_id
 from app.schemas.medication import MedicationCreate
 
 
-MEAL_MAPPING_3_MEALS = {
+MEAL_MAPPING_1 = {
+    0: (MealType.lunch, time(13, 0)),
+}
+
+MEAL_MAPPING_2 = {
+    0: (MealType.breakfast, time(8, 0)),
+    1: (MealType.dinner, time(18, 0)),
+}
+
+MEAL_MAPPING_3 = {
     0: (MealType.breakfast, time(8, 0)),
     1: (MealType.lunch, time(13, 0)),
     2: (MealType.dinner, time(18, 0)),
 }
-MEAL_MAPPING_5_MEALS = {
+
+MEAL_MAPPING_4 = {
+    0: (MealType.breakfast, time(7, 30)),
+    1: (MealType.second_breakfast, time(10, 30)),
+    2: (MealType.lunch, time(13, 30)),
+    3: (MealType.dinner, time(19, 0)),
+}
+
+MEAL_MAPPING_5 = {
     0: (MealType.breakfast, time(7, 30)),
     1: (MealType.second_breakfast, time(10, 30)),
     2: (MealType.lunch, time(13, 30)),
     3: (MealType.snack, time(16, 30)),
     4: (MealType.dinner, time(19, 30)), 
 }
+
+MEAL_MAPPING_6 = {
+    0: (MealType.breakfast, time(7, 0)),
+    1: (MealType.second_breakfast, time(10, 0)),
+    2: (MealType.lunch, time(13, 0)),
+    3: (MealType.snack, time(16, 0)),
+    4: (MealType.dinner, time(19, 0)),
+    5: (MealType.supper, time(21, 30)),
+}
+
+def get_meal_mapping(num_meals: int):
+    mappings = {
+        1: MEAL_MAPPING_1,
+        2: MEAL_MAPPING_2,
+        3: MEAL_MAPPING_3,
+        4: MEAL_MAPPING_4,
+        5: MEAL_MAPPING_5,
+        6: MEAL_MAPPING_6,
+    }
+    return mappings.get(num_meals, MEAL_MAPPING_3)
+
 
 class PlanCreationService:
     def __init__(self, db: Session):
@@ -62,6 +100,7 @@ class PlanCreationService:
             )
             if plan_response_spoonacular is None or not hasattr(plan_response_spoonacular, 'meals'):
                 raise ValueError("Received invalid plan data from Spoonacular.")
+            
             plan_data = PlanCreate(
                 user_id=user_id,
                 created_by=created_by_id,
@@ -73,10 +112,10 @@ class PlanCreationService:
             )
             new_plan = create_plan(db=self.db, plan_data=plan_data)
             num_meals = user_health_form_data.number_of_meals_per_day
-            meal_mapping = MEAL_MAPPING_5_MEALS if num_meals > 3 else MEAL_MAPPING_3_MEALS
-
+            meal_mapping = get_meal_mapping(num_meals)
             for index, meal_data in enumerate(plan_response_spoonacular.meals):
                 if index not in meal_mapping:
+                    logging.warning(f"Meal index {index} not in mapping for {num_meals} meals")
                     continue
                 meal_type, meal_time = meal_mapping[index]
                 create_meal(

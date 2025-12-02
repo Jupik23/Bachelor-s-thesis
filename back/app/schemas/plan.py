@@ -37,6 +37,7 @@ class PlanCreate(BaseModel):
     total_carbohydrates: Optional[float] = None
 
 class PlanResponse(PlanCreate):
+    id: int
     meals: List[MealResponse]
     medications: List[MedicationResponse]
     interactions: Optional[List[DrugInteractionResponse]] = None
