@@ -9,6 +9,14 @@
         <li v-for="item in card_data.content"
             :key="item.id">
             {{ item.text }}
+            <button
+                v-if="card_data.title === 'Notifications' && item.id !== 'notify-empty' && item.id !== 'notify-err'"
+                @click="$emit('mark-read', item.id)"
+                class="btn-read"
+                title="Mark as read"
+            >
+                ✔
+            </button>
         </li>
     </ul>
     <p v-else>No data to show</p>
@@ -30,7 +38,7 @@ defineProps({
         required: true,
     },
 })
-const emit = defineEmits(['view-full-schedule']);
+const emit = defineEmits(['view-full-schedule', 'mark-read']);
 const viewFullSchedule = (title) => {
   emit('view-full-schedule', title);
 };

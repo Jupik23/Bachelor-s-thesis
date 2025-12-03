@@ -59,6 +59,15 @@ MEAL_MAPPING_6 = {
     5: (MealType.supper, time(21, 30)),
 }
 
+MEAL_TEMPLATES = {
+    1: [(0, "lunch", "main course")],
+    2: [(0, "breakfast", "breakfast"), (1, "dinner", "main course")],
+    3: [(0, "breakfast", "breakfast"), (1, "lunch", "main course"), (2, "dinner", "main course")],
+    4: [(0, "breakfast", "breakfast"), (1, "second_breakfast", "snack"), (2, "lunch", "main course"), (3, "dinner", "main course")],
+    5: [(0, "breakfast", "breakfast"), (1, "second_breakfast", "snack"), (2, "lunch", "main course"), (3, "snack", "snack"), (4, "dinner", "main course")],
+    6: [(0, "breakfast", "breakfast"), (1, "second_breakfast", "snack"), (2, "lunch", "main course"), (3, "snack", "snack"), (4, "dinner", "main course"), (5, "supper", "snack")]
+}
+
 def get_meal_mapping(num_meals: int):
     mappings = {
         1: MEAL_MAPPING_1,
@@ -93,14 +102,19 @@ class PlanCreationService:
         except Exception as e:
             raise ValueError(f"Data from health_form are not correctly: {e}")
         
+        num_meals = max(1, min(6, user_health_form_data.number_of_meals_per_day))
+        template = MEAL_TEMPLATES.get(num_meals, MEAL_TEMPLATES[3])
+        spoonacular_query_types = [item[2] for item in template]
+
         try:
-            plan_response_spoonacular: DailyPlanResponse = await self.spoonacular_service.generate_meal_plan(
+            plan_response_spoonacular: DailyPlanResponse = await self.spoonacular_service.generate_structured_plan(
                 health_form=user_health_form_data,
-                time_frame=time_frame
+                meal_types=spoonacular_query_types
             )
-            if plan_response_spoonacular is None or not hasattr(plan_response_spoonacular, 'meals'):
-                raise ValueError("Received invalid plan data from Spoonacular.")
-            
+
+            if plan_response_spoonacular is None or not plan_response_spoonacular.meals:
+                 raise ValueError("Spoonacular returned no meals matching the criteria.")
+
             plan_data = PlanCreate(
                 user_id=user_id,
                 created_by=created_by_id,
@@ -113,11 +127,14 @@ class PlanCreationService:
             new_plan = create_plan(db=self.db, plan_data=plan_data)
             num_meals = user_health_form_data.number_of_meals_per_day
             meal_mapping = get_meal_mapping(num_meals)
+            
             for index, meal_data in enumerate(plan_response_spoonacular.meals):
                 if index not in meal_mapping:
                     logging.warning(f"Meal index {index} not in mapping for {num_meals} meals")
                     continue
+                
                 meal_type, meal_time = meal_mapping[index]
+                
                 create_meal(
                     db=self.db,
                     plan_id=new_plan.id,
@@ -129,6 +146,7 @@ class PlanCreationService:
             
             self.db.commit()
             self.db.refresh(new_plan)            
+            
             interactions: List[DrugInteractionResponse] = []
             db_medications = []
             
@@ -355,7 +373,7 @@ class PlanCreationService:
             categories=response_categories
         )
 
-    async def search_alternative_recipie(self, user_id: int, query: str) -> ComplexSearchResponse:
+    async def search_alternative_recipe(self, user_id: int, query: str) -> ComplexSearchResponse:
         health_form = self.health_form_service.get_health_form(user_id=user_id)
         diets = []
         intolerances = []
