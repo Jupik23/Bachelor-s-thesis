@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, Date, ForeignKey, DateTime, Float
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from app.database.database import Base
 from datetime import datetime
 
@@ -10,8 +11,8 @@ class Plan(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     day_start = Column(Date, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False) 
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
     total_calories = Column(Float)
     total_protein = Column(Float)
     total_fat = Column(Float)

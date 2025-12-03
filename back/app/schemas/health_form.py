@@ -11,8 +11,8 @@ class HealthFormCreate(BaseModel):
     activity_level: ActivityLevel
     calorie_goal: CalorieGoal
     number_of_meals_per_day: int
-    diet_preferences: List[str]
-    intolerances: List[str]
+    diet_preferences: Optional[List[str]] = []
+    intolerances: Optional[List[str]] = []
     medicament_usage: str
     
 class HealthFormUpdate(BaseModel):

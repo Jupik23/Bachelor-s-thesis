@@ -9,7 +9,7 @@ class Ingredient(BaseModel):
     amount: float
     unit: str
     class Config:
-        from_atributes=True
+        from_attributes=True
 
 class Nutrients(BaseModel):
     calories: float
@@ -25,7 +25,7 @@ class Recipe(BaseModel):
     servings: Optional[int] = None
     sourceUrl: Optional[str] = None
     class Config:
-        from_atributes=True
+        from_attributes=True
 
 class ComplexSearchResponse(BaseModel):
     results: List[Recipe]
@@ -42,7 +42,7 @@ class RecipeResponse(Recipe):
     glutenFree: bool = False
     dairyFree: bool = False
     class Config:
-        from_atributes=True
+        from_attributes=True
 class DailyPlanResponse(BaseModel):
     meals: List[Recipe]
     nutrients: Nutrients
@@ -51,9 +51,9 @@ class DailyPlanResponse(BaseModel):
     total_fat: Optional[float] = None
     total_carbohydrates: Optional[float] = None
     class Config:
-        from_atributes=True
+        from_attributes=True
 
 class WeeklyPlanResponse(BaseModel):
     week: Dict[str, DailyPlanResponse]
     class Config:
-        from_atributes=True
+        from_attributes=True

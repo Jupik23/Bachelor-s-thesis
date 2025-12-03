@@ -18,4 +18,4 @@ class DrugInteractionResponse(BaseModel):
 class DrugInDB(DrugInteractionBase):
     id: int
     class Config:
-        from_atributes = True
+        from_attributes = True

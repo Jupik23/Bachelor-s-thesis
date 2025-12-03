@@ -68,7 +68,7 @@ async def generate_dependent_plan(
     dependent_id: int,
     db: Session = Depends(get_database),
     current_user: dict = Depends(get_current_user),
-    plan_date: date = Query(defaultfactory=date.today)
+    plan_date: date = Query(default_factory=date.today)
 ):
     service = DependentService(db)
     return await service.generate_dependent_plan(

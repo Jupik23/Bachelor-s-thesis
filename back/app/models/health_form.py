@@ -4,13 +4,14 @@ from app.database.database import Base
 from datetime import datetime
 from app.models.common import ActivityLevel, CalorieGoal, Gender
 from sqlalchemy import Enum 
+from sqlalchemy.sql import func 
 class HealthForm(Base):
     __tablename__ = 'health_forms'
 
     id = Column(Integer, nullable = False, primary_key = True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable = False)
-    created_at = Column(DateTime, default = datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     height = Column(Integer)
     weight = Column(Integer)  
     age = Column(Integer, nullable = True) #need to change in future cuz age can change in time :) we will count current age 

@@ -34,3 +34,8 @@ class DrugValidationRequest(BaseModel):
 
 class DrugValidationResponse(DrugValidationRequest):
     is_valid: bool = False
+
+class RplDownloadStats(BaseModel):
+    total_processed: int
+    added: int
+    errors: int

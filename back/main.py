@@ -13,6 +13,7 @@ from app.api.routes.notification import router as notification_router
 import uvicorn
 import sys
 import os
+import logging
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "app"))
 
@@ -40,3 +41,4 @@ app.include_router(notification_router)
 #+local
 if __name__=="__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8081, reload=True)
+    logging.basicConfig(level=logging.DEBUG)

@@ -9,14 +9,13 @@ from app.schemas.drug_interaction import (DrugInteractionCreate, DrugInteraction
 from app.crud.medication import create_medication
 from app.crud.drug_interaction import get_interaction, create_new_drug_interaction
 from app.models.common import WithMealRelation
-#from app.services.rpl_service import RPLService
+from app.services.rpl_service import RPLService
 
 class DrugInteractionService:
     def __init__(self, db: Session, fda_api_key: Optional[str]):
         self.db = db
         self.openfda_base = "https://api.fda.gov/drug"
         self.api_key = fda_api_key
-        #self.rpl_service - RPLService(db=self.db)
 
     async def _make_request(self, url: str, params: Dict[str, Any] = None):
         if params is None:
@@ -106,10 +105,9 @@ class DrugInteractionService:
                     try:
                         api_result = await self._fetch_interaction_from_api(drug1=drug1, drug2=drug2)
                         db_interaction = create_new_drug_interaction(db=self.db, interaction_data=api_result)
-                        self.db.commit()
+                        self.db.flush()
                     except Exception as e:
                         logging.error(f"Failed to fetch interaction: {e}")
-                        self.db.rollback()
                         continue
                 
                 if db_interaction and db_interaction.description:
@@ -287,32 +285,61 @@ class DrugInteractionService:
 
 class MedicationService:
     def __init__(self, db: Session):
-        self.db = db
+        self.db = db 
         self.interaction_checker = DrugInteractionService(db=self.db, fda_api_key=os.getenv("OPEN_FDA_API_KEY"))
+        self.rpl_service = RPLService(db=self.db)
 
     async def add_medications_to_plan(self, plan_id: int, medications_data: List[MedicationCreate]):
         saved_medications = []
-        medication_names = []
+        interaction_check_names = []
+        substance_to_trade_name = {}
 
         for med_data in medications_data:
-            timing = await self.interaction_checker.get_medication_timing(med_data.name)
+            active_substance = self.rpl_service.get_active_substance(med_data.name) 
+            api_search_name = active_substance if active_substance else med_data.name
+            
+            substance_to_trade_name[api_search_name] = med_data.name
+            interaction_check_names.append(api_search_name)
+            
+            timing = await self.interaction_checker.get_medication_timing(api_search_name)
             
             med_dict = med_data.model_dump()
             if med_dict.get('with_meal_relation') == WithMealRelation.unknown and timing != WithMealRelation.unknown:
                 med_dict['with_meal_relation'] = timing
+            
+            if not med_dict.get('description') and active_substance:
+                med_dict['description'] = f"Substancja czynna: {active_substance}"
 
             db_med = create_medication(
                 self.db, plan_id=plan_id, medication_data=MedicationCreate(**med_dict)
             )
             saved_medications.append(MedicationResponse.model_validate(db_med))
-            medication_names.append(med_data.name)
+            
+        self.db.flush()
 
-        interactions = await self.interaction_checker.check_drug_interaction(drug_names=medication_names)
+        interactions_response = await self.interaction_checker.check_drug_interaction(drug_names=interaction_check_names)
+        
+        for interaction in interactions_response:
+            trade1 = substance_to_trade_name.get(interaction.medication_1, interaction.medication_1)
+            trade2 = substance_to_trade_name.get(interaction.medication_2, interaction.medication_2)
+            
+            note = ""
+            if trade1 != interaction.medication_1:
+                note += f" ({trade1} zawiera {interaction.medication_1})"
+            if trade2 != interaction.medication_2:
+                note += f" ({trade2} zawiera {interaction.medication_2})"
+            
+            if note:
+                interaction.description = (interaction.description or "") + f" [Dotyczy: {note}]"
+
         self.db.commit() 
         
-        return MedicationListResponse(medications=saved_medications, interactions=interactions)
+        return MedicationListResponse(medications=saved_medications, interactions=interactions_response)
     
     async def validate_drug(self, drug_name: str):
+        if self.rpl_service.get_exact_medication(drug_name):
+            return DrugValidationResponse(drug_name=drug_name, is_valid=True)
+
         try:
             is_valid = await self.interaction_checker.validate_drug_name(drug_name)
             return DrugValidationResponse(drug_name=drug_name, is_valid=is_valid)
@@ -321,4 +348,10 @@ class MedicationService:
             return DrugValidationResponse(drug_name=drug_name, is_valid=False)
 
     async def search_drug(self, query: str):
-        return await self.interaction_checker.search_medications(query)
+        rpl_results = self.rpl_service.search_polish_medications(query, limit=10)
+        clean_rpl = [r.split(" || ")[0] for r in rpl_results]
+        
+        fda_results = await self.interaction_checker.search_medications(query, limit=5)
+        
+        combined = sorted(list(set(clean_rpl + fda_results)))
+        return combined[:15]

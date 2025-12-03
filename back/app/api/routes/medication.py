@@ -13,6 +13,8 @@ from app.services.notification import NotificationService
 from app.schemas.notification import NotificationCreate
 from app.crud.care_relation import get_carer_by_patient_id
 from app.crud.notification import create_new_notification
+from app.schemas.medication import RplDownloadStats
+from app.services.rpl_service import RPLService 
 from typing import List
 import logging
 
@@ -140,3 +142,16 @@ async def search_medications_db(
     service = MedicationService(db=db)
     results = await service.search_drug(query=query)
     return results
+
+@router.post('/rpl/update', response_model=RplDownloadStats, status_code=status.HTTP_200_OK)
+async def update_polish_db(db:Session= Depends(get_database)):
+    rpl_service = RPLService(db=db)
+    try:
+        stats = await rpl_service.update_database_from_rpl()
+        return stats
+    except Exception as e:
+        logging.error(f"Failed to update RPL database: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update medication database: {str(e)}"
+        )

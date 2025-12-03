@@ -63,10 +63,21 @@
       track-by="intolerance"
       placeholder="Select intolerances"
     />
+
     <label for="medicaments-taken">Medicaments</label>
+    
+    <div class="db-switch-container">
+      <label class="switch">
+        <input type="checkbox" v-model="usePolishDb">
+        <span class="slider round"></span>
+      </label>
+      <span class="switch-label">
+        Search Database: <strong>{{ usePolishDb ? 'Poland (RPL)' : 'Global (FDA)' }}</strong>
+      </span>
+    </div>
     <multiselect
       v-model="medicaments"
-      :options=medicationOptions
+      :options="medicationOptions"
       :multiple="true"
       :taggable="true"
       @tag="addTag"
@@ -75,9 +86,13 @@
       :internal-search="false" 
       :clear-on-select="true"
       :close-on-select="false"
-      :options-limit="5"
+      :options-limit="10"
       placeholder="Type medication names (press Enter after each)"
-    />
+    >
+      <template #noResult>
+        <span>No medications found in {{ usePolishDb ? 'Polish' : 'Global' }} database.</span>
+      </template>
+    </multiselect>
 
     <div class="button">
       <button class="btn-primary" type="submit" :disabled="isLoading">
@@ -91,7 +106,7 @@
 
 <script setup>
 import { onMounted, ref, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { userAuthStore } from '@/lib/auth.js';
 import Multiselect from 'vue-multiselect'
 import "vue-multiselect/dist/vue-multiselect.min.css";
@@ -99,13 +114,15 @@ import api, {getHealthForm_by_id, saveHealthForm, searchMedicationsApi} from "..
 
 const route = useRoute();
 const authStore = userAuthStore();
+const usePolishDb = ref(true); 
 
 const targetUserID = computed(()=> {
   if (route.params.id) {
       return parseInt(route.params.id);
-  }return authStore.user?.id || null;
+  } return authStore.user?.id || null;
 })
-//health form data - that will be given by user
+
+//health form data
 const weight = ref(null);
 const height = ref(null);
 const numberOfMeals = ref(null);
@@ -139,7 +156,7 @@ const sexOptions = ref([
 ]);
 
 const addTag = async (newTag) => {
-  const normalizedTag = newTag.trim().toLowerCase();
+  const normalizedTag = newTag.trim(); 
   if (!normalizedTag || medicaments.value.includes(normalizedTag)){
     failureMessage.value = "Drug name cannot be empty or duplicated!"
     return;
@@ -147,7 +164,10 @@ const addTag = async (newTag) => {
   isLoading.value = true;
   failureMessage.value = "";
   try{
-    const validationResponse = await api.post("api/v1/medications/validate", {drug_name: newTag});
+    const validationResponse = await api.post("api/v1/medications/validate", {
+        drug_name: newTag,
+        source: usePolishDb.value ? 'rpl' : 'fda'
+    });
     if (validationResponse.data.is_valid){
       medicaments.value.push(normalizedTag)
       successMessage.value = "Medication validated and added"
@@ -161,7 +181,6 @@ const addTag = async (newTag) => {
     }
 };
 
-//preferences, intolerances from spoonacular docs
 const preferences = ref([])
 const intolerances = ref([]);
 const hasExistingForm = ref(false)
@@ -207,7 +226,7 @@ const initializeDataFromDB = async ()=> {
     }catch(error){
       if (error.response && error.response.status ===404){
         hasExistingForm.value = false;
-        failureMessage.value = "Coulnd not load data"
+        failureMessage.value = "Could not load data" 
       }
     }
   }catch (error){
@@ -228,13 +247,14 @@ const debounce = (fn, delay) => {
 };
 
 const fetchMedications = async (query) => {
-  if (!query || query.length < 0){
+  if (!query || query.length < 2){ 
     medicationOptions.value = []
     return;
   }
   isSearchingMed.value = true;
   try{
-    const response = await searchMedicationsApi(query);
+    const source = usePolishDb.value ? 'rpl' : 'fda';
+    const response = await searchMedicationsApi(query, source); 
     medicationOptions.value = response.data;
   }catch(error){
     console.log(error)
@@ -245,13 +265,12 @@ const fetchMedications = async (query) => {
 
 const onMedicationSearch = debounce((query) => {
   fetchMedications(query);
-},300);
+}, 300);
 
 onMounted(() => {
   initializeDataFromDB();
 })
 
-//UI variables need to implement popup's
 const isLoading = ref(false);
 const successMessage = ref("");
 const failureMessage = ref("");
@@ -377,5 +396,66 @@ input {
 }
 .success-message{
   color: var(--primary-color)
+}
+.db-switch-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  margin-right: 12px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: var(--primary-color, #42b983);
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px var(--primary-color, #42b983);
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(20px);
+  -ms-transform: translateX(20px);
+  transform: translateX(20px);
+}
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+.switch-label {
+  font-size: 0.85rem;
+  color: #555;
 }
 </style>
