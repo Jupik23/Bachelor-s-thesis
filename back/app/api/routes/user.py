@@ -79,3 +79,17 @@ def get_current_user_endpoint(current_user: dict = Depends(get_current_user_data
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail = str(e)
         )
+    
+@router.put("/me/password")
+def change_password(
+    password_data: PasswordUpdateRequest,
+    current_user: dict=Depends(get_current_user_data),
+    db: Session=Depends(get_database)):
+    try:
+        UserService.change_password(db=db, change_password_data=password_data, user_id=current_user.id)
+        return {"message": "Password updated successfully"}
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
