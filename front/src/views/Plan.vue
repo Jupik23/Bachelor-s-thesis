@@ -342,10 +342,14 @@ const syncToCalendar = async () => {
         return;
     }
     try {
-        const response = await api.post('/api/v1/integrations/google/sync', {
-            plan_date: apiDateFormat.value 
-        });
-        alert("Sukces! " + response.data.message);
+        const payload = {
+              plan_date: apiDateFormat.value
+          };
+        if (isDependentView.value) {
+            payload.dependent_id = dependentId.value; 
+        }
+        const response = await api.post('/api/v1/integrations/google/sync',payload);
+        alert("Sucess! " + response.data.message);
     } catch (e) {
         console.error(e);
         if (e.response?.status === 400) {

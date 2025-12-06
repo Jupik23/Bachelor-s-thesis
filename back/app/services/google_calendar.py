@@ -40,7 +40,7 @@ class GoogleCalendarService:
         flow.fetch_token(code=code)
         return flow.credentials
 
-    def create_calendar_events(self, user_id: int, plan: PlanResponse, creds_data: OAuth2Account):
+    def create_calendar_events(self, user_id: int, plan: PlanResponse, creds_data: OAuth2Account, owner_name: str= None):
         
         creds = Credentials(
             token=creds_data.access_token,
@@ -53,6 +53,7 @@ class GoogleCalendarService:
 
         service = build('calendar', 'v3', credentials=creds)
         plan_date = plan.day_start
+        prefix = f"[{owner_name}] " if owner_name else ""
         db_meals = self.db.query(Meal).filter(Meal.plan_id == plan.id).all()    
         for meal in db_meals:
             if meal.google_event_id:
@@ -61,7 +62,7 @@ class GoogleCalendarService:
             end_dt = start_dt + timedelta(minutes=30) 
 
             event = {
-                'summary': f"Meal: {meal.description}",
+                'summary': f"{prefix} Meal: {meal.description}",
                 'description': f"Typ: {meal.meal_type}. Have a nice meal!",
                 'start': {'dateTime': start_dt.isoformat(), 'timeZone': 'Europe/Warsaw'},
                 'end': {'dateTime': end_dt.isoformat(), 'timeZone': 'Europe/Warsaw'},
@@ -83,7 +84,7 @@ class GoogleCalendarService:
             end_dt = start_dt + timedelta(minutes=10)
 
             event = {
-                'summary': f"medicament: {med.name}",
+                'summary': f"{prefix} medicament: {med.name}",
                 'description': f"{med.description}\Relation with meal: {med.with_meal_relation}",
                 'start': {'dateTime': start_dt.isoformat(), 'timeZone': 'Europe/Warsaw'},
                 'end': {'dateTime': end_dt.isoformat(), 'timeZone': 'Europe/Warsaw'},

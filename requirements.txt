@@ -1,3 +1,4 @@
+openpyxl
 fastapi[standard]
 uvicorn[standard]
 sqlalchemy>=2.0
