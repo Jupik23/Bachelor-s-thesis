@@ -13,11 +13,15 @@ from app.schemas.plan import PlanCreate, PlanResponse, ManualMealAddRequest, Mea
 from app.schemas.spoonacular import DailyPlanResponse, ComplexSearchResponse
 from app.models.common import MealType, WithMealRelation
 from app.services.medication_service import DrugInteractionService, DrugInteractionResponse, MedicationResponse
-from app.schemas.shopping_list import ShoppingListResponse, ShoppingListCategory
+from app.schemas.shopping_list import ShoppingListResponse, ShoppingListCategory, ShoppingListGenerateRequest
 from app.crud.medication import get_medications_by_plan_id, create_medication
 from app.crud.plans import create_plan, get_plan_with_meals_by_user_id_and_date
 from app.crud.meals import create_meal, get_meal_by_id
 from app.schemas.medication import MedicationCreate
+from app.models.shopping_list import ShoppingList
+from app.crud.care_relation import get_dependents_by_carer_id
+from datetime import timedelta
+from collections import defaultdict
 
 
 MEAL_MAPPING_1 = {
@@ -332,46 +336,89 @@ class PlanCreationService:
 
         return MealResponse.model_validate(new_meal_orm)
 
-    async def get_shopping_list_for_user(self, user_id, plan_date: date):
-        user_plan = get_plan_with_meals_by_user_id_and_date(self.db, user_id, plan_date)
-        if not user_plan:
-            return ShoppingListResponse(total_items=0, categories=[])
-        
-        recipe_ids = [meal.spoonacular_recipe_id for meal in user_plan.meals
-                        if meal.spoonacular_recipe_id]
-        if not recipe_ids:
-            return ShoppingListResponse(total_items=0, categories=[])
-        
-        tasks = [self.spoonacular_service.get_recipe_information(recipe_id=recipe_id)
-                 for recipe_id in recipe_ids]
-        recipe_infos = await asyncio.gather(*tasks)
+    async def generate_and_save_shopping_list(self, user_id: int, request: ShoppingListGenerateRequest):
+            start_date = request.start_date if request.start_date else date.today()
+            end_date = start_date + timedelta(days=request.days - 1)
+            
+            target_user_ids = [user_id]
+            if request.include_dependents:
+                dependents = get_dependents_by_carer_id(self.db, user_id)
+                target_user_ids.extend([d.id for d in dependents])
 
-        all_ingredients = []
-        for recipe in recipe_infos:
-            if recipe and recipe.extendedIngredients:
-                all_ingredients.extend(recipe.extendedIngredients)
-        
-        categorized_items = {}
-        for ingredient in all_ingredients:
-            category = ingredient.aisle if ingredient.aisle else "Other"
-            item_text = ingredient.original if ingredient.original else ingredient.name
+            recipe_ids = []
+            current_loop_date = start_date
+            while current_loop_date <= end_date:
+                for uid in target_user_ids:
+                    plan = get_plan_with_meals_by_user_id_and_date(self.db, uid, current_loop_date)
+                    if plan:
+                        recipe_ids.extend([
+                            meal.spoonacular_recipe_id for meal in plan.meals 
+                            if meal.spoonacular_recipe_id
+                        ])
+                current_loop_date += timedelta(days=1)
 
-            if category not in categorized_items:
-                categorized_items[category] = []
-            categorized_items[category].append(item_text)
+            if not recipe_ids:
+                return ShoppingListResponse(
+                    from_date=start_date, to_date=end_date, total_items=0, categories=[]
+                )
+            unique_recipe_ids = list(set(recipe_ids))
+            tasks = [self.spoonacular_service.get_recipe_information(rid) for rid in unique_recipe_ids]
+            recipes_info = await asyncio.gather(*tasks)
+            recipe_map = {r.id: r for r in recipes_info if r}
 
-        response_categories: List[ShoppingListCategory] = []
-        for category_name, items_list in categorized_items.items():
-            unique_items = sorted(list(set(items_list)))
-            response_categories.append(
-                ShoppingListCategory(category=category_name, items=unique_items)
+            aggregated_ingredients = defaultdict(float)
+            ingredient_meta = {}
+
+            for rid in recipe_ids: 
+                recipe = recipe_map.get(rid)
+                if not recipe or not recipe.extendedIngredients:
+                    continue
+                
+                for ing in recipe.extendedIngredients:
+                    name = ing.name.lower().strip()
+                    unit = ing.unit.lower().strip()
+                    aisle = ing.aisle if ing.aisle else "Other"
+                    key = (name, unit, aisle)
+                    aggregated_ingredients[key] += ing.amount
+                    if key not in ingredient_meta:
+                        ingredient_meta[key] = ing.original 
+            categorized_items = defaultdict(list)
+            total_count = 0
+            
+            for (name, unit, aisle), amount in aggregated_ingredients.items():
+                formatted_item = f"{round(amount, 1)} {unit} {name}"
+                categorized_items[aisle].append(formatted_item)
+                total_count += 1
+
+            response_categories = []
+            for category, items in categorized_items.items():
+                response_categories.append(
+                    ShoppingListCategory(category=category, items=sorted(items))
+                )
+            response_categories.sort(key=lambda x: x.category)
+            final_structure = {
+                "categories": [cat.dict() for cat in response_categories],
+                "total_items": total_count
+            }
+
+            new_shopping_list = ShoppingList(
+                user_id=user_id,
+                from_date=start_date,
+                to_date=end_date,
+                include_dependents=request.include_dependents,
+                content=final_structure
             )
-        response_categories.sort(key=lambda x: x.category)
-        
-        return ShoppingListResponse(
-            total_items=len(all_ingredients),
-            categories=response_categories
-        )
+            self.db.add(new_shopping_list)
+            self.db.commit()
+            self.db.refresh(new_shopping_list)
+
+            return ShoppingListResponse(
+                id=new_shopping_list.id,
+                from_date=start_date,
+                to_date=end_date,
+                total_items=total_count,
+                categories=response_categories
+            )
 
     async def search_alternative_recipe(self, user_id: int, query: str) -> ComplexSearchResponse:
         health_form = self.health_form_service.get_health_form(user_id=user_id)

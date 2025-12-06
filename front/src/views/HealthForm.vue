@@ -105,7 +105,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router'
 import { userAuthStore } from '@/lib/auth.js';
 import Multiselect from 'vue-multiselect'
@@ -211,6 +211,13 @@ const populateForm = (data) => {
 
 const initializeDataFromDB = async ()=> {
   isLoading.value=true;
+  if (!authStore.user) {
+      await authStore.checkToken();
+  }
+  if (!targetUserID.value) {
+      isLoading.value = false;
+      return;
+  }
   try{ 
     const [preferences_response, intolerances_response] = await Promise.all([
       api.get("api/v1/preferences"),

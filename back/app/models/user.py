@@ -47,3 +47,4 @@ class User(Base):
         foreign_keys="[Notification.related_user_id]",
         back_populates="subject"
     )
+    shopping_lists = relationship("ShoppingList", back_populates="user")

@@ -6,13 +6,14 @@ from app.utils.jwt import get_current_user
 from app.services.plan import PlanCreationService
 from app.schemas.plan import PlanResponse, MealResponse, ManualMealAddRequest, MealStatusUpdate, MealUpdate
 from app.schemas.spoonacular import ComplexSearchResponse
-from app.schemas.shopping_list import ShoppingListResponse
+from app.schemas.shopping_list import ShoppingListResponse, ShoppingListGenerateRequest
 from app.crud.care_relation import get_carer_by_patient_id, check_relation
 from app.crud.notification import create_new_notification
 from app.schemas.notification import NotificationCreate
 from app.crud.meals import get_meal_by_id, change_meal_status, change_meal_time_or_type
 import logging
 from datetime import date
+from app.models.shopping_list import ShoppingList
 
 router = APIRouter(prefix="/api/v1/meals", tags=["meals"])
 
@@ -136,27 +137,40 @@ async def meal_status_update(meal_id: int, updated_data: MealStatusUpdate,
             
     return updated_meal
 
-@router.get("/shopping-list", response_model=ShoppingListResponse)
-async def get_shopping_list_for_today(db: Session = Depends(get_database),
-                                      current_user: dict = Depends(get_current_user)):
-    plan_service = PlanCreationService(db=db)
-    try:
-        shopping_list = await plan_service.get_shopping_list_for_user(
-            user_id=current_user.id,
-            plan_date=date.today()
+@router.post("/shopping-list", response_model=ShoppingListResponse)
+async def generate_shopping_list(
+    request: ShoppingListGenerateRequest,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_database)
+):
+    service = PlanCreationService(db)
+    return await service.generate_and_save_shopping_list(current_user.id, request)
+
+@router.get("/shopping-list/latest", response_model=ShoppingListResponse)
+def get_latest_shopping_list(
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_database)
+):
+    latest_list = db.query(ShoppingList).filter(
+        ShoppingList.user_id == current_user.id
+    ).order_by(ShoppingList.created_at.desc()).first()
+
+    if not latest_list:
+        return ShoppingListResponse(
+            from_date=date.today(),
+            to_date=date.today(),
+            total_items=0,
+            categories=[]
         )
-        return shopping_list
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Spoonacular error: {e.response.text}"
-        )
-    except Exception as e:
-        logging.error(f"Error generating shopping list: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate shopping list."
-        )
+    
+    content = latest_list.content
+    return ShoppingListResponse(
+        id=latest_list.id,
+        from_date=latest_list.from_date,
+        to_date=latest_list.to_date,
+        total_items=content.get("total_items", 0),
+        categories=content.get("categories", [])
+    )
 
 @router.patch("/{meal_id}/details", response_model =MealResponse)
 async def edit_meal_details(
