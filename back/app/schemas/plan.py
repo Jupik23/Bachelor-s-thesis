@@ -13,6 +13,7 @@ class MealResponse(MealCreate):
     id: int 
     eaten: bool
     comment: Optional[str]
+    google_event_id: Optional[str] = None
     class Config:
         from_attributes = True
 class MealUpdate(BaseModel):

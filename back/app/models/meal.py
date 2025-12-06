@@ -18,5 +18,6 @@ class Meal(Base):
     eaten = Column(Boolean, default=False, nullable=False)
     comment = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    google_event_id = Column(String, nullable=True) 
 
     plan = relationship("Plan", back_populates="meals")

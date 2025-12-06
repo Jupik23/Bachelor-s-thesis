@@ -14,6 +14,7 @@ class Medication(Base):
     taken = Column(Boolean, default=False)
     with_meal_relation = Column(SAEnum(WithMealRelation), default=WithMealRelation.unknown) 
     description = Column(String, nullable=True)
+    google_event_id = Column(String, nullable=True)
 
     plan = relationship("Plan", back_populates="medications")
 

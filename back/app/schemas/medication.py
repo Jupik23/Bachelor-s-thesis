@@ -15,7 +15,7 @@ class MedicationCreate(BaseModel):
 class MedicationResponse(MedicationCreate):
     id: int
     taken: bool
-
+    oogle_event_id: Optional[str] = None
     class Config:
         from_attributes = True
 class MedicationDashboardUpdate(BaseModel):

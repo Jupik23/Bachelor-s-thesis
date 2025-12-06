@@ -10,6 +10,7 @@ from app.api.routes.medication import router as med
 from app.api.routes.recipes import router as recipes_router
 from app.api.routes.dependant import router as dependant_router
 from app.api.routes.notification import router as notification_router
+from app.api.routes.integration import router as google_router
 import uvicorn
 import sys
 import os
@@ -36,6 +37,7 @@ app.include_router(med)
 app.include_router(recipes_router)
 app.include_router(dependant_router)
 app.include_router(notification_router)
+app.include_router(google_router)
 
 #+local
 if __name__=="__main__":

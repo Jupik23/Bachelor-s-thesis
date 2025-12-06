@@ -18,6 +18,14 @@
             <RouterLink to="/shopping-list" class="btn btn-secondary">
                 🛒 Get Shopping List
             </RouterLink>
+            <div class="integrations">
+              <button @click="connectGoogle" class="btn btn-google" style="margin-left: 10px;">
+                📅 Connect Google
+              </button>
+              <button @click="syncToCalendar" class="btn btn-primary" style="margin-left: 10px;">
+                  🔄 Sync to Calendar
+              </button>
+            </div>
         </div>
         <PlanDisplay
             :planData="planData"
@@ -75,7 +83,7 @@
 <script setup>
 import { onMounted, ref, computed, watch } from 'vue';
 import PlanDisplay from '@/components/PlanDisplay/Plan.vue'
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import EditMedModal from '@/components/EditMedModal.vue';
 import EditMealModal from '@/components/EditMealModal.vue';
 import ChangeMealModal from '@/components/ChangeMealModal.vue';
@@ -114,12 +122,9 @@ const changeDate = (days) => {
 
 const generatePlan = async () => {
     isLoading.value = true;
-    
-    // --- DEBUG LOGS START ---
     console.log("=== GENERATING PLAN DEBUG ===");
     console.log("Current Date Object:", currentDate.value);
     console.log("Formatted API Date (apiDateFormat):", apiDateFormat.value);
-    // --- DEBUG LOGS END ---
 
     const params = { plan_date: apiDateFormat.value };
     console.log("Final Params being sent to API:", params);
@@ -304,12 +309,64 @@ async function handleReplaceMeal({mealId, newRecipeId}){
     alert("Failed to replace meal");
   }
 }
+const router = useRouter();
+const connectGoogle = async () => {
+  try {
+    const res = await api.get('/api/v1/integrations/google/auth-url');
+    window.location.href = res.data.authorization_url;
+  } catch (e) {
+    console.error(e);
+    alert("Error while trying to connect to google.");
+  }
+};
+
+const handleGoogleConnection = async (code) => {
+    try {
+        isLoading.value = true;
+        await api.post('/api/v1/integrations/google/connect', { code: code });       
+        alert("Pomyślnie połączono z Kalendarzem Google!");
+        router.replace('/todays-plan'); 
+        
+    } catch (e) {
+        console.error("Błąd łączenia z Google:", e);
+        error.value = "Nie udało się połączyć z Google: " + (e.response?.data?.detail || e.message);
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+const syncToCalendar = async () => {
+    if (isLoading.value) return;
+    if (!planData.value || (!planData.value.meals.length && !planData.value.medications.length)) {
+        alert("Generate a plan first before syncing.");
+        return;
+    }
+    try {
+        const response = await api.post('/api/v1/integrations/google/sync', {
+            plan_date: apiDateFormat.value 
+        });
+        alert("Sukces! " + response.data.message);
+    } catch (e) {
+        console.error(e);
+        if (e.response?.status === 400) {
+            alert("You need to connect your Google account first.");
+        } else if (e.response?.status === 404) {
+             alert("No Google Calendar found. Please create one named 'Health Planner' in your Google account.");
+        } else {
+            alert("Sync error:" + (e.response?.data?.detail || e.message));
+        }
+    }
+};
+
 watch(() => route.params.id, () => {
     loadInitialData();
 });
 
-onMounted(() => {
-    loadInitialData();
+onMounted(async () => {
+    if (route.query.google_code) {
+        await handleGoogleConnection(route.query.google_code);
+    }
+    await loadInitialData();
 });
 </script>
 
@@ -480,4 +537,16 @@ h1 {
 .recipe-instructions :deep(ol), .recipe-instructions :deep(ul) { padding-left: 20px; }
 .recipe-instructions :deep(li) { margin-bottom: 0.75rem; }
 .recipe-summary :deep(a) { color: var(--primary-color); font-weight: 600; }
+.btn-google {
+  background-color: #DB4437;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.btn-google:hover {
+  background-color: #c53929;
+}
 </style>
