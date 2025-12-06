@@ -6,7 +6,7 @@ from app.schemas.user_auth import (UserAuthCreate, UserWithAuth, RegisterRequest
 from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.schemas.token import Token
-from app.utils.jwt import get_current_user_data
+from app.utils.jwt import get_current_user
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime
 
@@ -39,7 +39,7 @@ def login_for_acces_token(form_data: OAuth2PasswordRequestForm = Depends(), db: 
     
 @router.patch('/me/password', response_model=PasswordUpdateResponse)
 def change_password_endpoint(change_password_data: PasswordUpdateRequest,
-                             current_user: User = Depends(get_current_user_data),
+                             current_user: User = Depends(get_current_user),
                             db: Session = Depends(get_database)):
     
     if not change_password_data.password_match():
@@ -57,7 +57,7 @@ def change_password_endpoint(change_password_data: PasswordUpdateRequest,
         UserService.change_password(
             db,
             change_password_data,
-            user_id = current_user["user_id"]
+            user_id = current_user.id
         )
         return PasswordUpdateResponse(
             message="Password updated sucessfully",
@@ -70,9 +70,9 @@ def change_password_endpoint(change_password_data: PasswordUpdateRequest,
         )
 
 @router.get('/me', response_model = User)
-def get_current_user_endpoint(current_user: dict = Depends(get_current_user_data), db: Session = Depends(get_database)):
+def get_current_user_endpoint(current_user: dict = Depends(get_current_user), db: Session = Depends(get_database)):
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user.id
         return UserService.get_user_info(db, user_id)
     except Exception as e:
         raise HTTPException(
@@ -83,7 +83,7 @@ def get_current_user_endpoint(current_user: dict = Depends(get_current_user_data
 @router.put("/me/password")
 def change_password(
     password_data: PasswordUpdateRequest,
-    current_user: dict=Depends(get_current_user_data),
+    current_user: dict = Depends(get_current_user),
     db: Session=Depends(get_database)):
     try:
         UserService.change_password(db=db, change_password_data=password_data, user_id=current_user.id)

@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Body
 from fastapi.responses import RedirectResponse
 from datetime import date
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 from app.database.database import get_database
 from app.services.google_calendar import GoogleCalendarService
 from app.services.plan import PlanCreationService
 from app.crud.oauth2 import create_oauth2_account, get_oauth2_account_by_id
 from app.utils.jwt import get_current_user 
+from app.models.oauth2 import OAuth2Account
 
 router = APIRouter(prefix="/api/v1/integrations", tags=["Integrations"])
 
@@ -55,3 +57,23 @@ async def sync_calendar(
     gc_service.create_calendar_events(current_user.id, plan, creds_db)
     
     return {"message": f"Plan for {target_date} synced to Google Calendar!"}
+
+@router.get("/google/status")
+def get_google_status(current_user = Depends(get_current_user), db: Session = Depends(get_database)):
+    creds = get_oauth2_account_by_id(db, provider="google_calendar", provider_id="calendar")    
+    account = db.query(OAuth2Account).filter(
+        OAuth2Account.user_id == current_user.id,
+        OAuth2Account.provider == "google_calendar"
+    ).first()
+    return {"is_connected": account is not None}
+@router.delete("/google/disconnect")
+def disconnect_google(current_user: dict = Depends(get_current_user), db: Session=Depends(get_database)):
+    stmt = delete(OAuth2Account).where(
+        OAuth2Account.user_id == current_user.id,
+        OAuth2Account.provider =="google_calendar"
+    )
+    result = db.execute(stmt)
+    db.commit()
+    if result.rowcount==0:
+        raise  HTTPException(status_code=404, detail="Integration not found")
+    return {"message": "Disconnected from Google Calendar"}

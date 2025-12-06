@@ -21,7 +21,7 @@ const authStore = userAuthStore();
                     <RouterLink to="/register">Get Started</RouterLink>
                 </template>
                 <template v-else>
-                    <RouterLink to="/dashboard">Profile</RouterLink>
+                    <RouterLink to="/profile">Profile</RouterLink>
                     <RouterLink to="/login" @click="authStore.logout">Logout</RouterLink>
                 </template>
             </div>
