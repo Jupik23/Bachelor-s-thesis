@@ -92,7 +92,7 @@ async def add_meal_to_plan_manually(
     
 @router.patch("/{meal_id}", response_model=MealResponse)
 async def meal_status_update(meal_id: int, updated_data: MealStatusUpdate,  
-                             currtent_user: dict = Depends(get_current_user), 
+                             current_user: dict = Depends(get_current_user), 
                              db: Session = Depends(get_database)):
     db_meal = get_meal_by_id(db, meal_id)
     
@@ -101,10 +101,10 @@ async def meal_status_update(meal_id: int, updated_data: MealStatusUpdate,
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Meal with id {meal_id} not found"
         )
-    is_owner = db_meal.plan.user_id == currtent_user.id 
+    is_owner = db_meal.plan.user_id == current_user.id 
     is_carer = False
     if not is_owner:
-        is_carer = check_relation(db=db, carer_id=currtent_user.id, patient_id=db_meal.plan.user_id)
+        is_carer = check_relation(db=db, carer_id=current_user.id, patient_id=db_meal.plan.user_id)
         if not is_carer and not is_owner:  
             raise HTTPException(
                 status_code=403,
@@ -117,17 +117,17 @@ async def meal_status_update(meal_id: int, updated_data: MealStatusUpdate,
     )
     if is_owner:
         try:
-            carrer = get_carer_by_patient_id(db=db, patient_id=currtent_user.id)
+            carrer = get_carer_by_patient_id(db=db, patient_id=current_user.id)
             if carrer:
                 meal_status_text = "eaten" if updated_data.eaten else "marked as not eaten"
-                patient_name = currtent_user.name
+                patient_name = current_user.name
                 desc_preview = db_meal.description.split('.')[0] if db_meal.description else "Meal"
                 message = f"{patient_name} {meal_status_text} '{desc_preview}'."
                 if updated_data.comment:
                     message += f" Comment: \"{updated_data.comment}\""
                 notification_data = NotificationCreate(
                         user_id = carrer.id,
-                        related_user_id=currtent_user.id,
+                        related_user_id=current_user.id,
                         type= "meal_status_update",
                         message=message
                     )

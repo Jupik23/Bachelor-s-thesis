@@ -20,6 +20,43 @@
         <div v-else-if="error" class="error">{{ error }}</div>
         
         <div v-else class="content-wrapper">
+            <div v-if="dependentsData.length > 0" class="dependents-section">
+                <div class="card info-card">
+                    <h3>Dependents Overview (Today)</h3>
+                    <div class="dep-grid">
+                        <div v-for="dep in dependentsData" :key="dep.id" class="dep-card">
+                            <div class="dep-header">
+                                <strong>{{ dep.name }} {{ dep.surname }}</strong>
+                                <span :class="['status-badge', dep.plan_status.toLowerCase().replace(' ', '-')]">
+                                    {{ dep.plan_status }}
+                                </span>
+                            </div>
+                            
+                            <div v-if="dep.plan_status !== 'No Plan'" class="dep-stats">
+                                <div class="stat-row">
+                                    <span>🍽️ Meals:</span>
+                                    <div class="progress-bar">
+                                        <div class="fill" :style="{width: (dep.meals_total ? (dep.meals_done/dep.meals_total)*100 : 0) + '%'}"></div>
+                                    </div>
+                                    <span>{{ dep.meals_done }}/{{ dep.meals_total }}</span>
+                                </div>
+                                
+                                <div class="stat-row">
+                                    <span>💊 Meds:</span>
+                                    <div class="progress-bar">
+                                        <div class="fill meds" :style="{width: (dep.meds_total ? (dep.meds_taken/dep.meds_total)*100 : 0) + '%'}"></div>
+                                    </div>
+                                    <span>{{ dep.meds_taken }}/{{ dep.meds_total }}</span>
+                                </div>
+                            </div>
+                            <div v-else class="no-plan-msg">
+                                <RouterLink :to="`/dependents/${dep.id}/plan`">Generate Plan</RouterLink>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="stats-row">
                 <div v-for="(s, i) in stats" :key="i" class="card stat-card">
                     <small>{{ s.title }}</small>
@@ -47,17 +84,30 @@
 
 <script setup>
 import { onMounted, ref } from "vue"
+import { useRoute, useRouter } from "vue-router"
 import api, { getMyNotification, getPlanByDate, markNotificationAsRead } from "@/lib/api.js"
 
+const route = useRoute();
+const router = useRouter();
 const isLoading = ref(true);
 const error = ref(null)
 const todayDisplay = new Date().toDateString();
 const todayApi = new Date().toISOString().split('T')[0];
+const dependentsData = ref([]);
 
 const formatTime = (t) => {
     if (!t) return '';
     try { return t.includes('T') ? t.split('T')[1].substring(0, 5) : String(t).substring(0, 5); } 
     catch (e) { return ''; }
+};
+
+const getDependentsSummary = async () => {
+    try {
+        const res = await api.get('/api/v1/dependents/dashboard-summary');
+        dependentsData.value = res.data;
+    } catch (e) {
+        console.error("Error fetching dependents:", e);
+    }
 };
 
 const cards_data = ref([
@@ -124,10 +174,38 @@ const getStats = async () => {
 }
 
 const handleMarkAsRead = async (id) => {
-    try { await markNotificationAsRead(id); await getStats(); } catch (e) { console.error(e); }
+    try { 
+        await markNotificationAsRead(id);
+        const notiCard = cards_data.value.find(c => c.title === "Notifications");
+        if (notiCard){
+            notiCard.content = notiCard.content.filter(n => n.id !== id);
+            if (notiCard.content.length === 0) {
+                notiCard.content.push({ id: 'notify-empty', text: "No new notifications." });
+            }
+        }
+    }catch (e) {
+        alert("Failed to mark notification as read.");
+    }
 };
 
-onMounted(getStats);
+const handleGoogleConnection = async (code) => {
+    try {
+        isLoading.value = true;
+        await api.post('/api/v1/integrations/google/connect', { code: code });
+        alert("Successfully connected to Google Calendar!");
+        router.replace('/dashboard');
+    } catch (e) {
+        error.value = "Failed to connect Google: " + (e.response?.data?.detail || e.message);
+    }
+};
+
+onMounted(async () => {
+    if (route.query.google_code) {
+        await handleGoogleConnection(route.query.google_code);
+    }
+    await getStats();
+    await getDependentsSummary();
+});
 </script>
 
 <style scoped>
@@ -173,4 +251,51 @@ onMounted(getStats);
 .btn-check { border: none; background: none; color: green; cursor: pointer; font-weight: bold; }
 .loading, .error { text-align: center; padding: 2rem; }
 .error { color: red; }
+
+.dependents-section { margin-bottom: 2rem; }
+.dep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+.dep-card {
+    background: #f8f9fa;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 1rem;
+}
+.dep-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.status-badge {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+}
+.status-badge.completed { background: #d4edda; color: #155724; }
+.status-badge.in-progress { background: #fff3cd; color: #856404; }
+.status-badge.no-plan, .status-badge.empty { background: #f8d7da; color: #721c24; }
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+.progress-bar {
+    flex-grow: 1;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.fill { height: 100%; background: #4CAF50; }
+.fill.meds { background: #2196F3; }
+.no-plan-msg a { color: #2196F3; font-size: 0.9rem; font-weight: bold; text-decoration: none; }
 </style>
