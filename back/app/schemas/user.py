@@ -16,6 +16,7 @@ class UserUpdate(BaseModel):
 
 class User(UserBase):
     id: int
+    is_patient: bool = False
 
     class Config:
         from_attributes = True
