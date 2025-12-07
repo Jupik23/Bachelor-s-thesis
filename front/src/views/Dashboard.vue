@@ -126,7 +126,7 @@ const stats = ref([
 const getStats = async () => {
     isLoading.value = true;
     error.value = null;
-    
+
     const [planResult, notifResult] = await Promise.allSettled([
         getPlanByDate(todayApi),
         getMyNotification()
@@ -134,11 +134,15 @@ const getStats = async () => {
 
     if (planResult.status === 'fulfilled') {
         const data = planResult.value.data;
-        if (data.medications?.length) {
-            stats.value[0].value = data.medications.filter(m => m.taken).length;
-            stats.value[0].unit = `/${data.medications.length}`;
+
+        const totalMeds = data.medications?.length || 0;
+        const takenMeds = data.medications?.filter(m => m.taken).length || 0;
+
+        if (totalMeds > 0) {
+            stats.value[0].value = takenMeds;
+            stats.value[0].unit = `/${totalMeds}`;
         }
-        
+
         if (data.total_calories > 0) {
             stats.value[1].value = data.total_calories;
         } else {
@@ -147,19 +151,29 @@ const getStats = async () => {
                 stats.value[1].value = cal?.data?.target_calories ?? 0;
             } catch (e) {}
         }
-        cards_data.value[0].content = data.medications?.length 
+
+        const totalMeals = data.meals?.length || 0;
+        const eatenMeals = data.meals?.filter(m => m.eaten).length || 0;
+        const totalTasks = totalMeals + totalMeds;
+        const completedTasks = eatenMeals + takenMeds;
+        const healthScore = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+        stats.value[2].value = healthScore;
+
+        cards_data.value[0].content = data.medications?.length
             ? data.medications.map(m => ({ id: m.id, text: `${m.name} at ${formatTime(m.time)}` }))
             : [{ id: 'empty', text: "No medications for today." }];
 
-        cards_data.value[1].content = data.meals?.length 
+        cards_data.value[1].content = data.meals?.length
             ? data.meals.map(m => ({ id: m.id, text: `${m.meal_type.toUpperCase()}: ${m.description.split('.')[0]}` }))
             : [{ id: 'empty', text: "No meals planned for today." }];
 
-        cards_data.value[2].content = data.interactions?.length 
+        cards_data.value[2].content = data.interactions?.length
             ? data.interactions.map((a, i) => ({ id: i, text: `${a.severity}: ${a.medication_1} & ${a.medication_2}` }))
             : [{ id: 'empty', text: "No significant interactions found." }];
     } else {
-        ['medication', 'meals', 'alerts'].forEach((k, i) => cards_data.value[i].content = [{id: 'err', text: "Plan not created yet."}]);
+        ['medication', 'meals', 'alerts'].forEach((k, i) => cards_data.value[i].content = [{ id: 'err', text: "Plan not created yet." }]);
+        stats.value[2].value = 0;
     }
 
     if (notifResult.status === 'fulfilled' && notifResult.value.data?.length) {
