@@ -124,26 +124,46 @@ class DrugInteractionService:
             return WithMealRelation.unknown
         
         desc = description.lower()
+        
+        contradictions = [
+            'regardless of food', 'with or without food', 'does not matter',
+            'food has no effect', 'not affected by food', 'no food effect'
+        ]
+        for pattern in contradictions:
+            if pattern in desc:
+                return WithMealRelation.unknown
+        
         timing_scores = {'empty_stomach': 0, 'before': 0, 'during': 0, 'after': 0}
         
         empty_stomach_patterns = {
             'on an empty stomach': 100, 'empty stomach': 100, 'do not take with food': 100,
-            'must not be taken with food': 95, 'food decreases absorption': 80, 'fasting': 70,
-            'absorption decreased by food': 80, 'take on empty': 60, 'without food': 85
+            'must not be taken with food': 95, 'without food': 85, 'food decreases absorption': 80,
+            'absorption decreased by food': 80, 'fasting': 70, 'take on empty': 60,
+            'at least 1 hour before food': 90, 'at least 2 hours before food': 95,
+            'at least 30 minutes before food': 85, 'away from food': 75, 'separate from food': 70,
+            'avoid food': 80, 'food may reduce absorption': 75, 'reduced bioavailability with food': 80,
+            'avoid taking with food': 85, 'should not be taken with food': 90
         }
         before_patterns = {
             '1 hour before meals': 100, 'one hour before meals': 100, '30 minutes before meals': 95,
-            'at least 1 hour before': 95, 'before meals': 80, 'before eating': 80, 'prior to meals': 75,
-            'morning before breakfast': 80, 'take before': 70
+            'thirty minutes before': 95, 'at least 1 hour before': 95, 'before meals': 80,
+            'before eating': 80, 'prior to meals': 75, 'morning before breakfast': 80,
+            'take before': 70, '15 minutes before meals': 90, 'half an hour before': 95,
+            'on arising, before breakfast': 85, 'at least 30 minutes before': 85
         }
         during_patterns = {
             'with food': 100, 'with meals': 100, 'take with food': 95, 'should be taken with food': 95,
-            'during meals': 85, 'with breakfast': 85, 'with dinner': 85, 'food increases absorption': 75,
-            'to minimize stomach upset': 65, 'with fatty meal': 80
+            'during meals': 85, 'with breakfast': 85, 'with dinner': 85, 'with lunch': 85,
+            'food increases absorption': 75, 'to minimize stomach upset': 65, 'with fatty meal': 80,
+            'with high-fat meal': 85, 'to reduce gastrointestinal': 70, 'to avoid nausea': 65,
+            'administer with food': 90, 'take alongside food': 85, 'better absorbed with food': 80,
+            'improved absorption with food': 80, 'food enhances bioavailability': 85,
+            'to reduce stomach irritation': 70, 'with a meal': 95
         }
         after_patterns = {
             '2 hours after meals': 100, 'two hours after meals': 100, '1 hour after meals': 95,
-            'after meals': 80, 'after eating': 80, 'following meals': 75, 'post-meal': 70
+            'after meals': 80, 'after eating': 80, 'following meals': 75, 'post-meal': 70,
+            'at least 2 hours after': 95, 'wait 1 hour after eating': 90, 'at least 1 hour after': 90
         }
         
         all_patterns = [
@@ -166,6 +186,8 @@ class DrugInteractionService:
         context_bonuses = [
             (['absorption', 'decreased', 'food'], 'empty_stomach', 30),
             (['absorption', 'increased', 'food'], 'during', 30),
+            (['bioavailability', 'reduced', 'food'], 'empty_stomach', 30),
+            (['bioavailability', 'increased', 'food'], 'during', 30),
             (['stomach', 'upset'], 'during', 20),
             (['hour', 'before'], 'before', 15),
             (['hour', 'after'], 'after', 15),
@@ -175,7 +197,10 @@ class DrugInteractionService:
                 timing_scores[category] += bonus
 
         max_score = max(timing_scores.values())
-        if max_score < 50:
+        total_score = sum(timing_scores.values())
+        confidence = max_score / total_score if total_score > 0 else 0.0
+        
+        if max_score < 50 or confidence < 0.4:
             return WithMealRelation.unknown
             
         winner = max(timing_scores.items(), key=lambda x: x[1])[0]
@@ -191,10 +216,16 @@ class DrugInteractionService:
             return WithMealRelation.unknown
             
         priority_sections = [
-            'dosage_and_administration', 'patient_counseling_information', 
-            'instructions_for_use', 'how_supplied', 'clinical_pharmacology'
+            'dosage_and_administration', 'drug_interactions',
+            'patient_counseling_information', 'instructions_for_use',
+            'food_interactions', 'clinical_pharmacology',
+            'how_supplied', 'precautions', 'warnings'
         ]
         description_parts = []
+        
+        if 'food_effect' in label_data:
+            description_parts.insert(0, label_data['food_effect'])
+            
         for section in priority_sections:
             if section in label_data:
                 content = label_data[section]
@@ -202,8 +233,13 @@ class DrugInteractionService:
                     description_parts.extend(content)
                 elif isinstance(content, str):
                     description_parts.append(content)
-                    
-        return self._analyze_meal_timing(" ".join(description_parts))
+        
+        result = self._analyze_meal_timing(" ".join(description_parts))
+        
+        if result == WithMealRelation.unknown:
+            logging.info(f"Unknown meal timing for {med_name}")
+        
+        return result
         
     def _determine_severity(self, description: str) -> str:
         if not description or len(description.strip()) < 10:
